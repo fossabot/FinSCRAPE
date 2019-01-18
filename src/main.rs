@@ -77,6 +77,14 @@ fn get_data() -> (HashMap<String, CryptoFiat>, u64) {
     //assert_eq(frame["BTC-USD"].price, 3626.4) (for instance)
 
     //can be converted to immutable after get_data
+    let mut timestamp = 0;
+    loop {
+        timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs();
+        if timestamp % 30 == 0 {
+            break
+        }
+    }
+
     let thisBOX = CryptoFiat {
         class: "String".to_string(),
         market:"String".to_string(),
@@ -115,7 +123,6 @@ fn get_data() -> (HashMap<String, CryptoFiat>, u64) {
     };
     let mut frame = HashMap::new();
     frame.entry("BTC-USD".to_string()).or_insert(thisBOX);
-    let timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs();
     (frame, timestamp)
 
 }
