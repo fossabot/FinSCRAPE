@@ -383,9 +383,21 @@ mod tests {
         }
     }
 
+    fn get_data_creates_valid_frame() -> Result<(), ()> {
+        let (frame, timestamp) = get_data();
+        if frame["BTC-USD"].crypto_symbol == "BTC" &&
+            frame["BTC-USD"].fiat_symbol == "USD" {
+                Ok(())
+        }
+        else {
+            Err(())
+        }
+    }
+
     #[test]
     fn get_data_group(){
         get_data_sleeps_till_30().expect("the request did not happen on a round 30 seconds");
+        get_data_creates_valid_frame().expect("get_data returned an invalid frame");
     }
 
     #[test]
