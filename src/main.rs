@@ -4,7 +4,7 @@ extern crate serde_json;
 extern crate serde_derive;
 extern crate serde;
 use serde::{Deserialize, Serialize};
-use serde_json::{Result, Value};
+use serde_json::{Value};
 
 //this will be used to get json from server
 extern crate reqwest;
@@ -23,7 +23,9 @@ extern crate lettre;
 extern crate csv;
 
 use std::option;
+use std::result;
 use std::time::Instant;
+use std::time::{SystemTime, UNIX_EPOCH};
 use std::collections::HashMap;
 
 //before running this as production, the pi should be set up running off the usb A port on the powerbar
@@ -56,8 +58,8 @@ fn notify(reason: &Notify) {
 }
 */
 
-/*0th
-fn get_data() -> (HashMap<String, CryptoFiat>, i64) {
+
+fn get_data() -> (HashMap<String, CryptoFiat>, u64) {
     //sleep till time is a multiple of 30
     //get response
         //https://min-api.cryptocompare.com/data/pricemultifull?fsyms=BTC,ETH,BCH,LTC,EOS,BNB,XMR,DASH,VEN,NEO,ETC,ZEC,WAVES,BTG,DCR,REP,GNO,MCO,FCT,HSR,DGD,XZC,VERI,PART,GAS,ZEN,GBYTE,BTCD,MLN,XCP,XRP,MAID&tsyms=USD,EUR,JPY,GBP,AUD,CHF,CAD,CNY,KRW&api_key={6cbc5ffe92ca7113e33a5f379e8d73389d6f8a1ba30d10a003135826b0f64815}
@@ -75,8 +77,49 @@ fn get_data() -> (HashMap<String, CryptoFiat>, i64) {
     //assert_eq(frame["BTC-USD"].price, 3626.4) (for instance)
 
     //can be converted to immutable after get_data
+    let thisBOX = CryptoFiat {
+        class: "String".to_string(),
+        market:"String".to_string(),
+        crypto_symbol: "String".to_string(),
+        fiat_symbol:"String".to_string(),
+        flags: "String".to_string(),
+        price: 0.0,
+        last_update: 0,
+        last_volume_crypto: 0.0,
+        last_volume_fiat: 0.0,
+        last_trade_id:0,
+        volume_day_crypto: 0.0,
+        volume_day_fiat: 0.0,
+        volume_24_hour_crypto: 0.0,
+        volume_24_hour_fiat: 0.0,
+        open_day: 0.0,
+        high_day: 0.0,
+        low_day: 0.0,
+        open_24_hour: 0.0,
+        high_24_hour: 0.0,
+        low_24_hour: 0.0,
+        last_market: "String".to_string(),
+        volume_hour_crypto: 0.0,
+        volume_hour_fiat: 0.0,
+        open_hour: 0.0,
+        high_hour: 0.0,
+        low_hour: 0.0,
+        change_24_hour: 0.0,
+        change_pct_24_hour: 0.0,
+        change_day: 0.0,
+        change_pct_day: 0.0,
+        supply: 0,
+        market_cap: 0,
+        total_volume_24_hour_crypto: 0.0,
+        total_volume_24_hour_fiat: 0.0
+    };
+    let mut frame = HashMap::new();
+    frame.entry("BTC-USD".to_string()).or_insert(thisBOX);
+    let timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs();
+    (frame, timestamp)
+
 }
-*/
+
 
 /* 2nd
 fn write_data(frame: &HashMap<String, CryptoFiat>, timestamp: &i64) {
@@ -94,7 +137,7 @@ fn write_data(frame: &HashMap<String, CryptoFiat>, timestamp: &i64) {
 */
 
 /* 1st
-fn arrange_vec(pair: &CryptoFiat, timestamp: &i64) -> Vec<String> {
+fn arrange_vec(pair: &CryptoFiat, timestamp: &u64) -> Vec<String> {
     //because we use this functionality twice, it will be called
     //from queue frames and write data
     //  let writeVEC = [];
@@ -135,7 +178,7 @@ fn arrange_vec(pair: &CryptoFiat, timestamp: &i64) -> Vec<String> {
 /* 5th
 fn queue_frames(mut queue: HashMap<String, Vec<Vec<String>>>, 
                 frame: &HashMap<String, CryptoFiat>, 
-                timestamp: &i64
+                timestamp: &u64
                 ) -> HashMap<String, Vec<Vec<String>>> {
     //this should read the agent conf file and set window_size and interval
     //push each new frame to the queue until the queue is == 10 frames
@@ -160,7 +203,7 @@ fn queue_frames(mut queue: HashMap<String, Vec<Vec<String>>>,
 */
 
 /* 3rd
-fn set_labels(mut metricVEC: Vec<i64>, duration: i64) -> Vec<i64> {
+fn set_labels(mut metricVEC: Vec<u64>, duration: u64) -> Vec<u64> {
     //this will be called from inside functions to update the metrics struct
     //framestamp, set_disk, get_agent_config, get_data, queue_frames, inform_agent, write_data, agent_action, main_loop
     //each field will be an int calculated by timecomplete - timestart
@@ -169,7 +212,7 @@ fn set_labels(mut metricVEC: Vec<i64>, duration: i64) -> Vec<i64> {
 */
 
 /* 4th
-fn measure(metricVEC: Vec<i64>, db: DB) {
+fn measure(metricVEC: Vec<u64>, db: DB) {
     //for each write do checks if db, table, etc exist
     //that way if the disk is changed it can write a new db
     //rather than loosing a row
@@ -271,32 +314,32 @@ fn main() {
         let mut metricVEC: Vec<i64> = vec![];
         let start = Instant::now();
         //set_disk(db);
-        let duration = start.elapsed().as_secs() as i64;
+        let duration = start.elapsed().as_secs();
         //metricVEC = set_labels(metricVEC, duration);
 
         let start = Instant::now();
         //let (frame, timestamp) = get_data();
-        let duration = start.elapsed().as_secs() as i64;
+        let duration = start.elapsed().as_secs();
         //metricVEC = set_labels(metricVEC, duration);
 
         let start = Instant::now();
         //queue = queue_frames(queue, &frame, &timestamp);
-        let duration = start.elapsed().as_secs() as i64;
+        let duration = start.elapsed().as_secs();
         //metricVEC = set_labels(metricVEC, duration);
 
         let start = Instant::now();
         //inform_agent(&queue);
-        let duration = start.elapsed().as_secs() as i64;
+        let duration = start.elapsed().as_secs();
         //metricVEC = set_labels(metricVEC, duration);
 
         let start = Instant::now();
         //write_data(&frame, &timestamp);
-        let duration = start.elapsed().as_secs() as i64;
+        let duration = start.elapsed().as_secs();
         //metricVEC = set_labels(metricVEC, duration);
 
         let start = Instant::now();
         //get_agent_metrics();
-        let duration = start.elapsed().as_secs() as i64;
+        let duration = start.elapsed().as_secs();
         //metricVEC = set_labels(metricVEC, duration);
 
         //measure(metricVEC, db);
@@ -307,58 +350,69 @@ fn main() {
 mod tests {
     use super::*;
     //utils
-    fn get_fake_data()-> (frame, timestamp) {
+    /*
+    fn get_fake_data()-> (HashMap<String, CryptoFiat>, u64) {
         
     }
+    */
 
     //unit tests
     #[test]
     fn set_disk_group(){
-
+        panic!();
     }
 
     #[test]
     fn notify_group(){
+        panic!();
+    }
 
+    fn get_data_sleeps_till_30() -> Result<(), ()>{
+        let (frame, timestamp) = get_data();
+        if timestamp % 30 == 0 {
+            Ok(())
+        } else {
+            Err(())
+        }
     }
 
     #[test]
     fn get_data_group(){
-
+        get_data_sleeps_till_30().expect("the request did not happen on a round 30 seconds");
     }
 
     #[test]
     fn write_data_group(){
-
+        panic!();
     }
 
     #[test]
     fn queue_frames_group(){
-
+        panic!();
     }
 
     #[test]
     fn set_labels_group(){
-
+        panic!();
     }
 
     #[test]
     fn measure_group(){
-
+        panic!();
     }
 
     #[test]
     fn inform_agent_group(){
-
+        panic!();
     }
 
     #[test]
     fn get_agent_metrics_group(){
-
+        panic!();
     }
 
     #[test]
     fn get_agent_config_group(){
-
+        panic!();
     }
 }
