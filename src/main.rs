@@ -22,7 +22,7 @@ extern crate lettre;
 //this will be used to read/write csv files
 extern crate csv;
 
-use std::fmt;
+use std::fs;
 use std::option;
 use std::result;
 use std::time::Instant;
@@ -400,11 +400,38 @@ fn main() {
 mod tests {
     use super::*;
     //utils
-    /*
+    
     fn get_fake_data()-> (HashMap<String, CryptoFiat>, u64) {
-        
+        let json = fs::read_to_string("response_crypto.txt")
+        .expect("Something went wrong reading the file");
+
+        let timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs();
+
+        let mut frame = HashMap::new();
+        let data: Value = serde_json::from_str(&json).expect("unable to convert response text to untyped object");
+        let object = data.as_object().expect("unable to convert outer values to map");
+        let object = object["RAW"].as_object().expect("unable to convert inner values to map");
+        for crypto in object.keys() {
+            for fiat in object[crypto].as_object().unwrap().keys() {
+                let pair_block: CryptoFiat = serde_json::from_value(object[crypto][fiat].clone()).expect("failed to convert untyped map to typed struct");
+                frame.entry(format!("{}-{}", crypto, fiat)).or_insert(pair_block);
+            }
+        }
+
+        (frame, timestamp)
+
+
     }
-    */
+
+    #[test]
+    fn get_fake_data_returns_valid_frame() {
+        let (frame, timestamp) = get_fake_data();
+        if frame["BTC-USD"].crypto_symbol != "BTC" ||
+           frame["BTC-USD"].fiat_symbol != "USD" {
+               panic!("get_fake_data returned an invalid frame");
+           }
+    }
+    
 
     //unit tests
     #[test]
@@ -438,8 +465,6 @@ mod tests {
         }
     }
 
-
-
     fn get_data_frame_has_all_crypto() -> Result<(), ()> {
         let (frame, timestamp) = get_data();
         if frame.len() == 32 {
@@ -450,6 +475,7 @@ mod tests {
     }
 
     #[test]
+    #[ignore]
     fn get_data_group(){
         get_data_sleeps_till_30().expect("the request did not happen on a round 30 seconds");
         get_data_creates_valid_frame().expect("get_data returned an invalid frame");
