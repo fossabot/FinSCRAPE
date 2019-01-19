@@ -139,7 +139,7 @@ fn arrange_vec(pair: &CryptoFiat, timestamp: &u64) -> Vec<String> {
     //  writeVEC.append(pair.open_24_hour.to_string())
     //  writeVEC.append(pair.high_24_hour.to_string())
     //  writeVEC.append(pair.low_24_hour.to_string())
-    let writeVEC = vec!["".to_string()];
+    let writeVEC = vec!["".to_string(),"".to_string(),"".to_string(),"".to_string(),"".to_string(),"".to_string(),"".to_string(),"".to_string(),"".to_string(),"".to_string(),"".to_string(),"".to_string(),"".to_string(),"".to_string(),"".to_string(),"".to_string(),"".to_string(),"".to_string(),"".to_string(),"".to_string(),"".to_string(),"".to_string(),"".to_string(),"".to_string(),"".to_string(),"".to_string(),"".to_string(),"".to_string(),"".to_string(),"".to_string()];
     writeVEC
 }
 
