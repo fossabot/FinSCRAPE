@@ -105,7 +105,6 @@ fn write_data(frame: &HashMap<String, CryptoFiat>, timestamp: &i64) {
 }
 */
 
-/* 1st
 fn arrange_vec(pair: &CryptoFiat, timestamp: &u64) -> Vec<String> {
     //because we use this functionality twice, it will be called
     //from queue frames and write data
@@ -140,9 +139,9 @@ fn arrange_vec(pair: &CryptoFiat, timestamp: &u64) -> Vec<String> {
     //  writeVEC.append(pair.open_24_hour.to_string())
     //  writeVEC.append(pair.high_24_hour.to_string())
     //  writeVEC.append(pair.low_24_hour.to_string())
-
+    let writeVEC = vec!["".to_string()];
+    writeVEC
 }
-*/
 
 /* 5th
 fn queue_frames(mut queue: HashMap<String, Vec<Vec<String>>>, 
@@ -400,7 +399,6 @@ fn main() {
 mod tests {
     use super::*;
     //utils
-    
     fn get_fake_data()-> (HashMap<String, CryptoFiat>, u64) {
         let json = fs::read_to_string("response_crypto.txt")
         .expect("Something went wrong reading the file");
@@ -480,6 +478,22 @@ mod tests {
         get_data_sleeps_till_30().expect("the request did not happen on a round 30 seconds");
         get_data_creates_valid_frame().expect("get_data returned an invalid frame");
         get_data_frame_has_all_crypto().expect("frame does not contain enough crypto-USD pairs");
+    }
+
+    fn arrange_vec_has_30_items() -> Result<(), ()> {
+        let (frame, timestamp) = get_fake_data();
+        let pair = &frame["BTC-USD"];
+        let writeVEC = arrange_vec(&pair, &timestamp);
+        if writeVEC.len() == 30 {
+            Ok(())
+        } else {
+            Err(())
+        }
+    }
+
+    #[test]
+    fn arrange_vec_test_group(){
+        arrange_vec_has_30_items().expect("arrange_vec returns an incorrect number of items")
     }
 
     #[test]
