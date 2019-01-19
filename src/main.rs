@@ -4,7 +4,7 @@ extern crate serde_json;
 extern crate serde_derive;
 extern crate serde;
 use serde::{Deserialize, Serialize};
-use serde_json::{Value};
+use serde_json::{Value, from_str};
 
 //this will be used to get json from server
 extern crate reqwest;
@@ -22,6 +22,7 @@ extern crate lettre;
 //this will be used to read/write csv files
 extern crate csv;
 
+use std::fmt;
 use std::option;
 use std::result;
 use std::time::Instant;
@@ -77,52 +78,32 @@ fn get_data() -> (HashMap<String, CryptoFiat>, u64) {
     //assert_eq(frame["BTC-USD"].price, 3626.4) (for instance)
 
     //can be converted to immutable after get_data
+    let mut json = "".to_string();
     let mut timestamp = 0;
     loop {
         timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs();
         if timestamp % 30 == 0 {
+            json = reqwest::get("https://min-api.cryptocompare.com/data/pricemultifull?fsyms=BTC,ETH,BCH,LTC,EOS,BNB,XMR,DASH,VEN,NEO,ETC,ZEC,WAVES,BTG,DCR,REP,GNO,MCO,FCT,HSR,DGD,XZC,VERI,PART,GAS,ZEN,GBYTE,BTCD,MLN,XCP,XRP,MAID&tsyms=USD&api_key={6cbc5ffe92ca7113e33a5f379e8d73389d6f8a1ba30d10a003135826b0f64815}")
+                .expect("the request to the cryptocompare api failed")
+                .text().expect("unable to get text from the cryptocompare api response");
+
             break
         }
     }
 
-    let thisBOX = CryptoFiat {
-        class: "String".to_string(),
-        market:"String".to_string(),
-        crypto_symbol: "String".to_string(),
-        fiat_symbol:"String".to_string(),
-        flags: "String".to_string(),
-        price: 0.0,
-        last_update: 0,
-        last_volume_crypto: 0.0,
-        last_volume_fiat: 0.0,
-        last_trade_id:0,
-        volume_day_crypto: 0.0,
-        volume_day_fiat: 0.0,
-        volume_24_hour_crypto: 0.0,
-        volume_24_hour_fiat: 0.0,
-        open_day: 0.0,
-        high_day: 0.0,
-        low_day: 0.0,
-        open_24_hour: 0.0,
-        high_24_hour: 0.0,
-        low_24_hour: 0.0,
-        last_market: "String".to_string(),
-        volume_hour_crypto: 0.0,
-        volume_hour_fiat: 0.0,
-        open_hour: 0.0,
-        high_hour: 0.0,
-        low_hour: 0.0,
-        change_24_hour: 0.0,
-        change_pct_24_hour: 0.0,
-        change_day: 0.0,
-        change_pct_day: 0.0,
-        supply: 0,
-        market_cap: 0,
-        total_volume_24_hour_crypto: 0.0,
-        total_volume_24_hour_fiat: 0.0
-    };
     let mut frame = HashMap::new();
-    frame.entry("BTC-USD".to_string()).or_insert(thisBOX);
+    //this one fails
+
+    let data: Value = serde_json::from_str(&json).expect("unable to convert response text to untyped object");
+    let object = data.as_object().expect("unable to convert outer values to map");
+    let object = object["RAW"].as_object().expect("unable to convert inner values to map");
+    for crypto in object.keys() {
+        for fiat in object[crypto].as_object().unwrap().keys() {
+            let pair_block: CryptoFiat = serde_json::from_value(object[crypto][fiat].clone()).expect("failed to convert untyped map to typed struct");
+            frame.entry(format!("{}-{}", crypto, fiat)).or_insert(pair_block);
+        }
+    }
+
     (frame, timestamp)
 
 }
@@ -271,40 +252,75 @@ struct DB {
 struct CryptoFiat {
     //data["RAW"]["$CRYPTO"]["$FIAT"]
     //this is where we put the json after it is broken down untyped into crypto-fiat pairs
+    #[serde(rename="TYPE")]
     class: String,
+    #[serde(rename="MARKET")]
     market:String,
+    #[serde(rename="FROMSYMBOL")]
     crypto_symbol: String,
+    #[serde(rename="TOSYMBOL")]
     fiat_symbol:String,
+    #[serde(rename="FLAGS")]
     flags: String,
+    #[serde(rename="PRICE")]
     price: f64,
+    #[serde(rename="LASTUPDATE")]
     last_update: i64,
+    #[serde(rename="LASTVOLUME")]
     last_volume_crypto: f64,
+    #[serde(rename="LASTVOLUMETO")]
     last_volume_fiat: f64,
-    last_trade_id:i64,
+    #[serde(skip_deserializing)]
+    LASTTRADEID: i64,
+    #[serde(rename="VOLUMEDAY")]
     volume_day_crypto: f64,
+    #[serde(rename="VOLUMEDAYTO")]
     volume_day_fiat: f64,
+    #[serde(rename="VOLUME24HOUR")]
     volume_24_hour_crypto: f64,
+    #[serde(rename="VOLUME24HOURTO")]
     volume_24_hour_fiat: f64,
+    #[serde(rename="OPENDAY")]
     open_day: f64,
+    #[serde(rename="HIGHDAY")]
     high_day: f64,
+    #[serde(rename="LOWDAY")]
     low_day: f64,
+    #[serde(rename="OPEN24HOUR")]
     open_24_hour: f64,
+    #[serde(rename="HIGH24HOUR")]
     high_24_hour: f64,
+    #[serde(rename="LOW24HOUR")]
     low_24_hour: f64,
+    #[serde(rename="LASTMARKET")]
     last_market: String,
+    #[serde(rename="VOLUMEHOUR")]
     volume_hour_crypto: f64,
+    #[serde(rename="VOLUMEHOURTO")]
     volume_hour_fiat: f64,
+    #[serde(rename="OPENHOUR")]
     open_hour: f64,
+    #[serde(rename="HIGHHOUR")]
     high_hour: f64,
+    #[serde(rename="LOWHOUR")]
     low_hour: f64,
+    #[serde(rename="CHANGE24HOUR")]
     change_24_hour: f64,
+    #[serde(rename="CHANGEPCT24HOUR")]
     change_pct_24_hour: f64,
+    #[serde(rename="CHANGEDAY")]
     change_day: f64,
+    #[serde(rename="CHANGEPCTDAY")]
     change_pct_day: f64,
-    supply: i64,
-    market_cap: i64,
+    #[serde(rename="SUPPLY")]
+    supply: f64,
+    #[serde(rename="MKTCAP")]
+    market_cap: f64,
+    #[serde(rename="TOTALVOLUME24H")]
     total_volume_24_hour_crypto: f64,
-    total_volume_24_hour_fiat: f64
+    #[serde(rename="TOTALVOLUME24HTO")]
+    total_volume_24_hour_fiat: f64,
+    IMAGEURL: String
 
 }
 
