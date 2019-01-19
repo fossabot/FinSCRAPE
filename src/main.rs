@@ -61,23 +61,6 @@ fn notify(reason: &Notify) {
 
 
 fn get_data() -> (HashMap<String, CryptoFiat>, u64) {
-    //sleep till time is a multiple of 30
-    //get response
-        //https://min-api.cryptocompare.com/data/pricemultifull?fsyms=BTC,ETH,BCH,LTC,EOS,BNB,XMR,DASH,VEN,NEO,ETC,ZEC,WAVES,BTG,DCR,REP,GNO,MCO,FCT,HSR,DGD,XZC,VERI,PART,GAS,ZEN,GBYTE,BTCD,MLN,XCP,XRP,MAID&tsyms=USD,EUR,JPY,GBP,AUD,CHF,CAD,CNY,KRW&api_key={6cbc5ffe92ca7113e33a5f379e8d73389d6f8a1ba30d10a003135826b0f64815}
-    //deserialize the response.text using json into the frame map
-        //let data: Value = serde_json::from_str(response.text)?;
-        //for crypto in data["RAW"].keys():
-        //  for fiat in data["RAW"][crypto].keys():
-        //      let pair_block: CryptoFiat = serde_json::from_str(data["RAW"][crypto][fiat])?;
-        //      frame[format!("{}-{}", crypto, fiat)] = pair_block;
-
-    //set_labels()
-    //return the frame map
-    //a frame will be a unordered mut map of
-    //<<"$crypto-$fiat">, <CryptoFiat>>
-    //assert_eq(frame["BTC-USD"].price, 3626.4) (for instance)
-
-    //can be converted to immutable after get_data
     let mut json = "".to_string();
     let mut timestamp = 0;
     loop {
@@ -92,8 +75,6 @@ fn get_data() -> (HashMap<String, CryptoFiat>, u64) {
     }
 
     let mut frame = HashMap::new();
-    //this one fails
-
     let data: Value = serde_json::from_str(&json).expect("unable to convert response text to untyped object");
     let object = data.as_object().expect("unable to convert outer values to map");
     let object = object["RAW"].as_object().expect("unable to convert inner values to map");
@@ -248,78 +229,124 @@ struct DB {
 
 }
 
+fn default_string() -> String {
+    "MISSING".to_string()
+}
+fn default_int() -> i64 {
+    42
+}
+fn default_float() -> f64 {
+    42.0
+}
 #[derive(Serialize, Deserialize)]
 struct CryptoFiat {
     //data["RAW"]["$CRYPTO"]["$FIAT"]
     //this is where we put the json after it is broken down untyped into crypto-fiat pairs
     #[serde(rename="TYPE")]
+    #[serde(default="default_string")]
     class: String,
     #[serde(rename="MARKET")]
+    #[serde(default="default_string")]
     market:String,
     #[serde(rename="FROMSYMBOL")]
+    #[serde(default="default_string")]
     crypto_symbol: String,
     #[serde(rename="TOSYMBOL")]
+    #[serde(default="default_string")]
     fiat_symbol:String,
     #[serde(rename="FLAGS")]
+    #[serde(default="default_string")]
     flags: String,
     #[serde(rename="PRICE")]
+    #[serde(default="default_float")]
     price: f64,
     #[serde(rename="LASTUPDATE")]
+    #[serde(default="default_int")]
     last_update: i64,
     #[serde(rename="LASTVOLUME")]
+    #[serde(default="default_float")]
     last_volume_crypto: f64,
     #[serde(rename="LASTVOLUMETO")]
+    #[serde(default="default_float")]
     last_volume_fiat: f64,
     #[serde(skip_deserializing)]
+    //this one comes out as a string sometimes
     LASTTRADEID: i64,
     #[serde(rename="VOLUMEDAY")]
+    #[serde(default="default_float")]
     volume_day_crypto: f64,
     #[serde(rename="VOLUMEDAYTO")]
+    #[serde(default="default_float")]
     volume_day_fiat: f64,
     #[serde(rename="VOLUME24HOUR")]
+    #[serde(default="default_float")]
     volume_24_hour_crypto: f64,
     #[serde(rename="VOLUME24HOURTO")]
+    #[serde(default="default_float")]
     volume_24_hour_fiat: f64,
     #[serde(rename="OPENDAY")]
+    #[serde(default="default_float")]
     open_day: f64,
     #[serde(rename="HIGHDAY")]
+    #[serde(default="default_float")]
     high_day: f64,
     #[serde(rename="LOWDAY")]
+    #[serde(default="default_float")]
     low_day: f64,
     #[serde(rename="OPEN24HOUR")]
+    #[serde(default="default_float")]
     open_24_hour: f64,
     #[serde(rename="HIGH24HOUR")]
+    #[serde(default="default_float")]
     high_24_hour: f64,
     #[serde(rename="LOW24HOUR")]
+    #[serde(default="default_float")]
     low_24_hour: f64,
     #[serde(rename="LASTMARKET")]
+    #[serde(default="default_string")]
     last_market: String,
+    //this and the nearly all the following
+    //have no data in a or all currencies other than USD
     #[serde(rename="VOLUMEHOUR")]
+    #[serde(default="default_float")]
     volume_hour_crypto: f64,
     #[serde(rename="VOLUMEHOURTO")]
+    #[serde(default="default_float")]
     volume_hour_fiat: f64,
     #[serde(rename="OPENHOUR")]
+    #[serde(default="default_float")]
     open_hour: f64,
     #[serde(rename="HIGHHOUR")]
+    #[serde(default="default_float")]
     high_hour: f64,
     #[serde(rename="LOWHOUR")]
+    #[serde(default="default_float")]
     low_hour: f64,
     #[serde(rename="CHANGE24HOUR")]
+    #[serde(default="default_float")]
     change_24_hour: f64,
     #[serde(rename="CHANGEPCT24HOUR")]
+    #[serde(default="default_float")]
     change_pct_24_hour: f64,
     #[serde(rename="CHANGEDAY")]
+    #[serde(default="default_float")]
     change_day: f64,
     #[serde(rename="CHANGEPCTDAY")]
+    #[serde(default="default_float")]
     change_pct_day: f64,
     #[serde(rename="SUPPLY")]
+    #[serde(default="default_float")]
     supply: f64,
     #[serde(rename="MKTCAP")]
+    #[serde(default="default_float")]
     market_cap: f64,
     #[serde(rename="TOTALVOLUME24H")]
+    #[serde(default="default_float")]
     total_volume_24_hour_crypto: f64,
     #[serde(rename="TOTALVOLUME24HTO")]
+    #[serde(default="default_float")]
     total_volume_24_hour_fiat: f64,
+    #[serde(default="default_string")]
     IMAGEURL: String
 
 }
@@ -382,12 +409,12 @@ mod tests {
     //unit tests
     #[test]
     fn set_disk_group(){
-        panic!();
+        panic!("not implemented");
     }
 
     #[test]
     fn notify_group(){
-        panic!();
+        panic!("not implemented");
     }
 
     fn get_data_sleeps_till_30() -> Result<(), ()>{
@@ -402,10 +429,22 @@ mod tests {
     fn get_data_creates_valid_frame() -> Result<(), ()> {
         let (frame, timestamp) = get_data();
         if frame["BTC-USD"].crypto_symbol == "BTC" &&
-            frame["BTC-USD"].fiat_symbol == "USD" {
+           frame["BTC-USD"].fiat_symbol == "USD"
+        {
                 Ok(())
         }
         else {
+            Err(())
+        }
+    }
+
+
+
+    fn get_data_frame_has_all_crypto() -> Result<(), ()> {
+        let (frame, timestamp) = get_data();
+        if frame.len() == 32 {
+            Ok(())
+        } else {
             Err(())
         }
     }
@@ -414,40 +453,41 @@ mod tests {
     fn get_data_group(){
         get_data_sleeps_till_30().expect("the request did not happen on a round 30 seconds");
         get_data_creates_valid_frame().expect("get_data returned an invalid frame");
+        get_data_frame_has_all_crypto().expect("frame does not contain enough crypto-USD pairs");
     }
 
     #[test]
     fn write_data_group(){
-        panic!();
+        panic!("not implemented");
     }
 
     #[test]
     fn queue_frames_group(){
-        panic!();
+        panic!("not implemented");
     }
 
     #[test]
     fn set_labels_group(){
-        panic!();
+        panic!("not implemented");
     }
 
     #[test]
     fn measure_group(){
-        panic!();
+        panic!("not implemented");
     }
 
     #[test]
     fn inform_agent_group(){
-        panic!();
+        panic!("not implemented");
     }
 
     #[test]
     fn get_agent_metrics_group(){
-        panic!();
+        panic!("not implemented");
     }
 
     #[test]
     fn get_agent_config_group(){
-        panic!();
+        panic!("not implemented");
     }
 }
