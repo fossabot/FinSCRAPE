@@ -544,8 +544,7 @@ mod tests {
 
         //get paths
         let cargo = env::current_dir().expect("unable to find current dir");
-        let cargo = cargo.to_str().expect("path is invalid unicode");
-        let db_path = format!("{}/src", cargo).to_string();
+        let db_path = cargo.to_str().expect("path is invalid unicode");
 
         let filesInSrc = fs::read_dir(&db_path).expect("failed to read contents of download directory");
 
@@ -577,7 +576,7 @@ mod tests {
                                 //this converts the string slice into an owned string
                                 .to_owned().clone();
 
-            if fileNAME.contains("test.master"){                
+            if fileNAME.contains("test.db"){                
                 fs::remove_file(&entry.path()).expect("failed to remove file after match");
                 return Ok(());
             }
