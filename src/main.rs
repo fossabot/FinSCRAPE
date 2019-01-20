@@ -109,36 +109,36 @@ fn arrange_vec(pair: &CryptoFiat, timestamp: &u64) -> Vec<String> {
     //because we use this functionality twice, it will be called
     //from queue frames and write data
     //  let writeVEC = [];
-    //  writeVEC.append(timestamp.to_string())
+    //  writeVEC.append(timestamp.to_string()) //
     //  writeVEC.append(pair.last_update.to_string())
     //  writeVEC.append(pair.price.to_string())
     //  writeVEC.append(pair.last_trade_id.to_string())
-    //  writeVEC.append(pair.last_market.to_string())
+    //  writeVEC.append(pair.last_market.to_string()) //
     //  writeVEC.append(pair.last_volume_crypto.to_string())
     //  writeVEC.append(pair.volume_hour_crypto.to_string()) 
     //  writeVEC.append(pair.volume_day_crypto.to_string())
-    //  writeVEC.append(pair.volume_24_hour_crypto.to_string())
+    //  writeVEC.append(pair.volume_24_hour_crypto.to_string()) //
     //  writeVEC.append(pair.total_volume_24_hour_crypto.to_string())
     //  writeVEC.append(pair.last_volume_fiat.to_string())
     //  writeVEC.append(pair.volume_hour_fiat.to_string())
-    //  writeVEC.append(pair.volume_day_fiat.to_string())
+    //  writeVEC.append(pair.volume_day_fiat.to_string()) //
     //  writeVEC.append(pair.volume_24_hour_fiat.to_string())
     //  writeVEC.append(pair.total_volume_24_hour_fiat.to_string())
-    //  writeVEC.append(pair.change_day.to_string())
-    //  writeVEC.append(pair.change_pct_day.to_string())
+    //  writeVEC.append(pair.change_day.to_string()) 
+    //  writeVEC.append(pair.change_pct_day.to_string()) //
     //  writeVEC.append(pair.change_24_hour.to_string())
     //  writeVEC.append(pair.change_pct_24_hour.to_string())
     //  writeVEC.append(pair.supply.to_string())
-    //  writeVEC.append(pair.market_cap.to_string())
+    //  writeVEC.append(pair.market_cap.to_string()) //
     //  writeVEC.append(pair.open_hour.to_string())
     //  writeVEC.append(pair.high_hour.to_string())
     //  writeVEC.append(pair.low_hour.to_string())
-    //  writeVEC.append(pair.open_day.to_string())
+    //  writeVEC.append(pair.open_day.to_string()) //
     //  writeVEC.append(pair.high_day.to_string())
     //  writeVEC.append(pair.low_day.to_string())
     //  writeVEC.append(pair.open_24_hour.to_string())
     //  writeVEC.append(pair.high_24_hour.to_string())
-    //  writeVEC.append(pair.low_24_hour.to_string())
+    //  writeVEC.append(pair.low_24_hour.to_string()) //
     let writeVEC = vec!["".to_string(),"".to_string(),"".to_string(),"".to_string(),"".to_string(),"".to_string(),"".to_string(),"".to_string(),"".to_string(),"".to_string(),"".to_string(),"".to_string(),"".to_string(),"".to_string(),"".to_string(),"".to_string(),"".to_string(),"".to_string(),"".to_string(),"".to_string(),"".to_string(),"".to_string(),"".to_string(),"".to_string(),"".to_string(),"".to_string(),"".to_string(),"".to_string(),"".to_string(),"".to_string()];
     writeVEC
 }
@@ -491,9 +491,28 @@ mod tests {
         }
     }
 
+    fn arrange_vec_returns_valid_writeVEC() -> Result<(), ()> {
+        let (frame, timestamp) = get_fake_data();
+        let pair = &frame["BTC-USD"];
+        let writeVEC = arrange_vec(&pair, &timestamp);
+        if writeVEC[0].len() == 10 &&
+           writeVEC[4] == "Coinbase" &&
+           writeVEC[9] == "37533.51939446323" &&
+           writeVEC[14] == "140675918.74609685" &&
+           writeVEC[19] == "2.3316949881989917" &&
+           writeVEC[24] == "65291977762.5" &&
+           writeVEC[29] == "3643.41"
+        {
+            Ok(())
+        } else {
+            Err(())
+        }
+    }
+
     #[test]
     fn arrange_vec_test_group(){
-        arrange_vec_has_30_items().expect("arrange_vec returns an incorrect number of items")
+        arrange_vec_has_30_items().expect("arrange_vec returns an incorrect number of items");
+        arrange_vec_returns_valid_writeVEC().expect("arrange_vec returns an invalid writeVEC")
     }
 
     #[test]
