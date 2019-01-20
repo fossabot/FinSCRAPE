@@ -23,6 +23,7 @@ extern crate lettre;
 extern crate csv;
 
 use std::fs;
+use std::env;
 use std::option;
 use std::result;
 use std::time::Instant;
@@ -89,7 +90,7 @@ fn get_data() -> (HashMap<String, CryptoFiat>, u64) {
 
 }
 
-fn write_data(frame: &HashMap<String, CryptoFiat>, timestamp: &i64) {
+fn write_data(frame: &HashMap<String, CryptoFiat>, timestamp: &u64) {
     //for each write, do checks if db, table, etc exist
     //that way if the disk is changed it can write a new db
     //rather than loosing a row
@@ -520,9 +521,69 @@ mod tests {
         arrange_vec_returns_valid_writevec().expect("arrange_vec returns an invalid writeVEC")
     }
 
+    fn write_data_creates_db_when_none() -> Result <(), ()> {
+        let mut db = DB {
+            path: None,
+            storage_device: None
+        };
+
+        set_fake_disk(db);
+        //get paths
+        let cargo = env::current_dir().expect("unable to find current dir");
+        let cargo = cargo.to_str().expect("path is invalid unicode");
+        let db_path = format!("{}/src", cargo).to_string();
+
+        let filesInSrc = fs::read_dir(&db_path).expect("failed to read contents of download directory");
+
+        for fileNAME in filesInSrc {
+            let entry = fileNAME.expect("DirEntry returned 0");
+            let fileNAME: String = entry.file_name()
+                                //this converts the OSstr into a string slice
+                                .into_string()
+                                .expect("the file_name could not be converted to a string")
+                                //this converts the string slice into an owned string
+                                .to_owned().clone();
+
+            if fileNAME.contains("test.db") {
+                fs::remove_file(&entry.path()).expect("failed to remove file after match");
+            }
+        }
+
+        let (frame, timestamp) = get_fake_data();
+        write_data(&frame, &timestamp);
+
+        let filesInSrc = fs::read_dir(&db_path).expect("failed to read contents of download directory");
+
+        for fileNAME in filesInSrc {
+            let entry = fileNAME.expect("DirEntry returned 0");
+            let fileNAME: String = entry.file_name()
+                                //this converts the OSstr into a string slice
+                                .into_string()
+                                .expect("the file_name could not be converted to a string")
+                                //this converts the string slice into an owned string
+                                .to_owned().clone();
+
+            if fileNAME.contains("test.db"){                
+                fs::remove_file(&entry.path()).expect("failed to remove file after match");
+                return Ok(());
+            }
+        }
+
+
+        return Err(());
+    }
+
+    fn write_data_adds_valid_tables_to_db() -> Result <(), ()> {
+        Err(())
+    }
+
+    fn write_data_adds_valid_row_to_table() -> Result <(), ()> {
+        Err(())
+    }
+
     #[test]
     fn write_data_group(){
-        panic!("not implemented");
+        write_data_creates_db_when_none().expect("write_data failed to create db");
     }
 
     #[test]
