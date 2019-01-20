@@ -1,10 +1,10 @@
 //this will be used to parse json into structs
-extern crate serde_json;
 #[macro_use]
 extern crate serde_derive;
+extern crate serde_json;
 extern crate serde;
-use serde::{Deserialize, Serialize};
 use serde_json::{Value, from_str};
+use serde::{Deserialize, Serialize};
 
 //this will be used to get json from server
 extern crate reqwest;
@@ -12,6 +12,7 @@ extern crate reqwest;
 //this will be used to create and add to databases
 /* HARDEST TASK */
 extern crate rusqlite;
+use rusqlite::Connection;
 
 //this will be used to query the storage devices available
 extern crate systemstat;
@@ -27,25 +28,27 @@ use std::env;
 use std::option;
 use std::result;
 use std::time::Instant;
-use std::time::{SystemTime, UNIX_EPOCH};
 use std::collections::HashMap;
+use std::time::{SystemTime, UNIX_EPOCH};
 
 //before running this as production, the pi should be set up running off the usb A port on the powerbar
 //with the hard drive plugged in to the AC port. should use the 80gb spinner and the 64gb usb as the initial
 //pair of hot swaps, this will give you a month on each
 
+ #[allow(bad_style)]
+
 /*
-fn set_disk(mut db: DB) -> DB {
-    //check conf file for current db dir in binary directory
+fn set_disk(mut master: &DB, mut metrics: &DB) {
+    //check conf file for current master dir in binary directory
     //get a list of storage devices
     //get a list of storage utilization and capacity
     //if current disk is > 2/3 full, notify() and
-    //excluding the current db disk, find a disk that has greater than 33 gb capacity
+    //excluding the current master disk, find a disk that has greater than 33 gb capacity
     //if none continue
-    //if some set db path field to new disk, notify(changed db path)
+    //if some set master path field to new disk, notify(changed master path)
 
     //leave a note of current dir in binary directory
-    //set path in db struct
+    //set path in master struct
 
     //conf file should be blank on first run,
     //and at the beginnig, if blank, use first disk larger than 33 gb
@@ -90,17 +93,21 @@ fn get_data() -> (HashMap<String, CryptoFiat>, u64) {
 
 }
 
-fn write_data(frame: &HashMap<String, CryptoFiat>, timestamp: &u64) {
-    //for each write, do checks if db, table, etc exist
-    //that way if the disk is changed it can write a new db
+fn write_data(frame: &HashMap<String, CryptoFiat>, timestamp: &u64, master: DB) {
+    //for each write, do checks if master, table, etc exist
+    //that way if the disk is changed it can write a new master
     //rather than loosing a row
     //for pair in frame.keys():
     //  writeVEC = arrange_vec(frame[pair], timestamp)
     //  create table called pair if none
     //  write new row to table using writevec
-    //set_labels() if the write to single db takes to long, this can be par_itered with multiple dbs instead of tables
-    //if new db/tables etc then notify(new db established) as soon as the first row is written
+    //set_labels() if the write to single master takes to long, this can be par_itered with multiple dbs instead of tables
+    //if new master/tables etc then notify(new master established) as soon as the first row is written
     //that should be the safe to unmount notification for the previous drive
+
+    let storage = Connection::open(master.path.unwrap()).expect("failed to open or create master");
+
+    storage.close();
 }
 
 fn arrange_vec(pair: &CryptoFiat, timestamp: &u64) -> Vec<String> {
@@ -174,9 +181,9 @@ fn set_labels(mut metricVEC: Vec<u64>, duration: u64) -> Vec<u64> {
 */
 
 /* 4th
-fn measure(metricVEC: Vec<u64>, db: DB) {
-    //for each write do checks if db, table, etc exist
-    //that way if the disk is changed it can write a new db
+fn measure(metricVEC: Vec<u64>, master: DB) {
+    //for each write do checks if master, table, etc exist
+    //that way if the disk is changed it can write a new master
     //rather than loosing a row
 
     //framestamp, storage_device, set_disk, get_agent_config, get_data, queue_frames, inform_agent, write_data, agent_action, main_loop
@@ -231,6 +238,7 @@ fn default_int() -> i64 {
 fn default_float() -> f64 {
     4242.42
 }
+
 #[derive(Serialize, Deserialize)]
 struct CryptoFiat {
     //data["RAW"]["$CRYPTO"]["$FIAT"]
@@ -348,15 +356,22 @@ fn main() {
 //perf: keys can be str, 
 //vecs and hashmaps all have length known, and can be defined
 
-    let mut db = DB{
+    let mut master = DB{
         path: None,
         storage_device: None
     };
+
+    let mut metrics = DB{
+        path: None,
+        storage_device: None
+    };
+
     let mut queue: HashMap<String, Vec<Vec<String>>> = HashMap::new();
+
     loop{
         let mut metricVEC: Vec<i64> = vec![];
         let start = Instant::now();
-        //set_disk(db);
+        //set_disk(&master, &metrics);
         let duration = start.elapsed().as_secs();
         //metricVEC = set_labels(metricVEC, duration);
 
@@ -385,13 +400,14 @@ fn main() {
         let duration = start.elapsed().as_secs();
         //metricVEC = set_labels(metricVEC, duration);
 
-        //measure(metricVEC, db);
+        //measure(metricVEC, metrics);
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
     //utils
     fn get_fake_data()-> (HashMap<String, CryptoFiat>, u64) {
         let json = fs::read_to_string("response_crypto.txt")
@@ -424,12 +440,7 @@ mod tests {
            }
     }
 
-    fn set_fake_disk(mut db: DB) -> DB {
-        db.path = Some("test.db".to_string());
-        db.storage_device = None;
-        db
-    }
-    
+
 
     //unit tests
     #[test]
@@ -437,10 +448,12 @@ mod tests {
         panic!("not implemented");
     }
 
+
     #[test]
     fn notify_group(){
         panic!("not implemented");
     }
+
 
     fn get_data_sleeps_till_30() -> Result<(), ()>{
         let (frame, timestamp) = get_data();
@@ -480,7 +493,8 @@ mod tests {
         get_data_frame_has_all_crypto().expect("frame does not contain enough crypto-USD pairs");
     }
 
-    fn arrange_vec_has_30_items() -> Result<(), ()> {
+
+    fn arrange_vec_has_29_items() -> Result<(), ()> {
         let (frame, timestamp) = get_fake_data();
         let pair = &frame["BTC-USD"];
         let writeVEC = arrange_vec(&pair, &timestamp);
@@ -517,17 +531,17 @@ mod tests {
 
     #[test]
     fn arrange_vec_test_group(){
-        arrange_vec_has_30_items().expect("arrange_vec returns an incorrect number of items");
+        arrange_vec_has_29_items().expect("arrange_vec returns an incorrect number of items");
         arrange_vec_returns_valid_writevec().expect("arrange_vec returns an invalid writeVEC")
     }
 
+
     fn write_data_creates_db_when_none() -> Result <(), ()> {
-        let mut db = DB {
-            path: None,
+        let mut master = DB {
+            path: Some("test.db".to_string()),
             storage_device: None
         };
 
-        set_fake_disk(db);
         //get paths
         let cargo = env::current_dir().expect("unable to find current dir");
         let cargo = cargo.to_str().expect("path is invalid unicode");
@@ -544,13 +558,13 @@ mod tests {
                                 //this converts the string slice into an owned string
                                 .to_owned().clone();
 
-            if fileNAME.contains("test.db") {
+            if fileNAME.contains("test.master") {
                 fs::remove_file(&entry.path()).expect("failed to remove file after match");
             }
         }
 
         let (frame, timestamp) = get_fake_data();
-        write_data(&frame, &timestamp);
+        write_data(&frame, &timestamp, master);
 
         let filesInSrc = fs::read_dir(&db_path).expect("failed to read contents of download directory");
 
@@ -563,7 +577,7 @@ mod tests {
                                 //this converts the string slice into an owned string
                                 .to_owned().clone();
 
-            if fileNAME.contains("test.db"){                
+            if fileNAME.contains("test.master"){                
                 fs::remove_file(&entry.path()).expect("failed to remove file after match");
                 return Ok(());
             }
@@ -583,33 +597,39 @@ mod tests {
 
     #[test]
     fn write_data_group(){
-        write_data_creates_db_when_none().expect("write_data failed to create db");
+        write_data_creates_db_when_none().expect("write_data failed to create master");
     }
+
 
     #[test]
     fn queue_frames_group(){
         panic!("not implemented");
     }
 
+
     #[test]
     fn set_labels_group(){
         panic!("not implemented");
     }
+
 
     #[test]
     fn measure_group(){
         panic!("not implemented");
     }
 
+
     #[test]
     fn inform_agent_group(){
         panic!("not implemented");
     }
 
+
     #[test]
     fn get_agent_metrics_group(){
         panic!("not implemented");
     }
+
 
     #[test]
     fn get_agent_config_group(){
