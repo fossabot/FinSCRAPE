@@ -89,8 +89,6 @@ fn get_data() -> (HashMap<String, CryptoFiat>, u64) {
 
 }
 
-
-/* 2nd
 fn write_data(frame: &HashMap<String, CryptoFiat>, timestamp: &i64) {
     //for each write, do checks if db, table, etc exist
     //that way if the disk is changed it can write a new db
@@ -103,11 +101,8 @@ fn write_data(frame: &HashMap<String, CryptoFiat>, timestamp: &i64) {
     //if new db/tables etc then notify(new db established) as soon as the first row is written
     //that should be the safe to unmount notification for the previous drive
 }
-*/
 
 fn arrange_vec(pair: &CryptoFiat, timestamp: &u64) -> Vec<String> {
-    //because we use this functionality twice, it will be called
-    //from queue frames and write data
     let mut writeVEC: Vec<String> = vec![];
     writeVEC.push(timestamp.to_string());
     writeVEC.push(pair.last_update.to_string());
@@ -427,6 +422,12 @@ mod tests {
                panic!("get_fake_data returned an invalid frame");
            }
     }
+
+    fn set_fake_disk(mut db: DB) -> DB {
+        db.path = Some("test.db".to_string());
+        db.storage_device = None;
+        db
+    }
     
 
     //unit tests
@@ -454,7 +455,7 @@ mod tests {
         if frame["BTC-USD"].crypto_symbol == "BTC" &&
            frame["BTC-USD"].fiat_symbol == "USD"
         {
-                Ok(())
+            Ok(())
         }
         else {
             Err(())
