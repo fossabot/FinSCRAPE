@@ -230,10 +230,10 @@ fn default_string() -> String {
     "MISSING".to_string()
 }
 fn default_int() -> i64 {
-    42
+    424242
 }
 fn default_float() -> f64 {
-    42.0
+    4242.42
 }
 #[derive(Serialize, Deserialize)]
 struct CryptoFiat {
