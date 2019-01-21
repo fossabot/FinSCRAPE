@@ -12,7 +12,7 @@ extern crate reqwest;
 //this will be used to create and add to databases
 /* HARDEST TASK */
 extern crate rusqlite;
-use rusqlite::Connection;
+use rusqlite::{Connection, NO_PARAMS};
 
 //this will be used to query the storage devices available
 extern crate systemstat;
@@ -28,7 +28,7 @@ use std::env;
 use std::option;
 use std::result;
 use std::time::Instant;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 //before running this as production, the pi should be set up running off the usb A port on the powerbar
@@ -537,7 +537,7 @@ mod tests {
 
 
     fn write_data_creates_db_when_none() -> Result <(), ()> {
-        let mut master = DB {
+        let master = DB {
             path: Some("test.db".to_string()),
             storage_device: None
         };
@@ -557,7 +557,7 @@ mod tests {
                                 //this converts the string slice into an owned string
                                 .to_owned().clone();
 
-            if fileNAME.contains("test.master") {
+            if fileNAME.contains("test.db") {
                 fs::remove_file(&entry.path()).expect("failed to remove file after match");
             }
         }
@@ -587,7 +587,61 @@ mod tests {
     }
 
     fn write_data_adds_valid_tables_to_db() -> Result <(), ()> {
-        Err(())
+        let master = DB {
+            path: Some("test.db".to_string()),
+            storage_device: None
+        };
+
+        let (frame, timestamp) = get_fake_data();
+        write_data(&frame, &timestamp, master);
+        //BTC,ETH,BCH,LTC,EOS,BNB,XMR,DASH,VEN,NEO,ETC,ZEC,WAVES,BTG,DCR,REP,GNO,MCO,FCT,HSR,DGD,XZC,VERI,PART,GAS,ZEN,GBYTE,BTCD,MLN,XCP,XRP,MAID
+        let storage = Connection::open("test.db").expect("failed to open the database");
+        let mut table_vec: HashSet<String> = [].iter().cloned().collect();
+        let expect_vec: HashSet<String> = [
+                                            "BTC-USD".to_owned(),
+                                            "ETH-USD".to_owned(),
+                                            "BCH-USD".to_owned(),
+                                            "LTC-USD".to_owned(),
+                                            "EOS-USD".to_owned(),
+                                            "BNB-USD".to_owned(),
+                                            "XMR-USD".to_owned(),
+                                            "DASH-USD".to_owned(),
+                                            "VEN-USD".to_owned(),
+                                            "NEO-USD".to_owned(),
+                                            "ETC-USD".to_owned(),
+                                            "ZEC-USD".to_owned(),
+                                            "WAVES-USD".to_owned(),
+                                            "BTG-USD".to_owned(),
+                                            "DCR-USD".to_owned(),
+                                            "REP-USD".to_owned(),
+                                            "GNO-USD".to_owned(),
+                                            "MCO-USD".to_owned(),
+                                            "FCT-USD".to_owned(),
+                                            "HSR-USD".to_owned(),
+                                            "DGD-USD".to_owned(),
+                                            "XZC-USD".to_owned(),
+                                            "VERI-USD".to_owned(),
+                                            "PART-USD".to_owned(),
+                                            "GAS-USD".to_owned(),
+                                            "ZEN-USD".to_owned(),
+                                            "GBYTE-USD".to_owned(),
+                                            "BTCD-USD".to_owned(),
+                                            "MLN-USD".to_owned(),
+                                            "XCP-USD".to_owned(),
+                                            "XRP-USD".to_owned(),
+                                            "MAID-USD".to_owned()
+                                            ].iter().cloned().collect();
+        
+        let mut statement = storage.prepare("SELECT name FROM sqlite_master WHERE type='table';").expect("failed to prepare statement");
+        let table_iter = statement.query_map(NO_PARAMS, |row| {
+            table_vec.insert(row.get(0))
+        });
+
+        if expect_vec == table_vec {
+            Ok(())
+        } else {
+            Err(())
+        }
     }
 
     fn write_data_adds_valid_row_to_table() -> Result <(), ()> {
@@ -597,6 +651,7 @@ mod tests {
     #[test]
     fn write_data_group(){
         write_data_creates_db_when_none().expect("write_data failed to create master");
+        write_data_adds_valid_tables_to_db().expect("write_data failed to add tables to DB")
     }
 
 
