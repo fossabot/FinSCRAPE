@@ -105,13 +105,38 @@ fn write_data(frame: &HashMap<String, CryptoFiat>, timestamp: &u64, master: DB) 
     //if new master/tables etc then notify(new master established) as soon as the first row is written
     //that should be the safe to unmount notification for the previous drive
 
+    /*
+                    timestamp              TEXT NOT NULL,
+                last_update            TEXT NOT NULL,
+                price    TEXT NOT NULL,
+                last_market    TEXT NOT NULL,
+                last_volume_crypto    TEXT NOT NULL,
+                volume_hour_crypto    TEXT NOT NULL,
+                volume_day_crypto    TEXT NOT NULL,
+                volume_24_hour_crypto    TEXT NOT NULL,
+                last_volume_fiat    TEXT NOT NULL,
+                volume_hour_fiat    TEXT NOT NULL,
+                volume_day_fiat    TEXT NOT NULL,
+                volume_24_hour_fiat    TEXT NOT NULL,
+                total_volume_24_hour_fiat    TEXT NOT NULL,
+                change_day    TEXT NOT NULL,
+                change_pct_day    TEXT NOT NULL,
+                change_24_hour    TEXT NOT NULL,
+                change_pct_24_hour    TEXT NOT NULL,
+                supply    TEXT NOT NULL,
+                market_cap    TEXT NOT NULL,
+                market_cap    TEXT NOT NULL,
+                market_cap    TEXT NOT NULL,
+                market_cap    TEXT NOT NULL,
+
+    */
+
     let storage = Connection::open(master.path.unwrap()).expect("failed to open or create master");
     for table_name in frame.keys() {
             let table_statement = format!("CREATE TABLE {} (
-                  id              INTEGER PRIMARY KEY,
-                  name            TEXT NOT NULL,
-                  time_created    TEXT NOT NULL,
-                  data            BLOB
+                bad_column  TEXT NOT NULL
+
+
                   )", table_name);
             storage.execute(&table_statement, NO_PARAMS).expect("failed to create table");
     }
@@ -667,41 +692,10 @@ mod tests {
         let (frame, timestamp) = get_fake_data();
 
         let pair = &frame["BTCandUSD"];
-        let expect_vec = vec![
-            timestamp.to_string(),
-            pair.last_update.to_string(),
-            pair.price.to_string(),
-            pair.last_market.to_string(),
-            pair.last_volume_crypto.to_string(),
-            pair.volume_hour_crypto.to_string(),
-            pair.volume_day_crypto.to_string(),
-            pair.volume_24_hour_crypto.to_string(),
-            pair.total_volume_24_hour_crypto.to_string(),
-            pair.last_volume_fiat.to_string(),
-            pair.volume_hour_fiat.to_string(),
-            pair.volume_day_fiat.to_string(),
-            pair.volume_24_hour_fiat.to_string(),
-            pair.total_volume_24_hour_fiat.to_string(),
-            pair.change_day.to_string(),
-            pair.change_pct_day.to_string(),
-            pair.change_24_hour.to_string(),
-            pair.change_pct_24_hour.to_string(),
-            pair.supply.to_string(),
-            pair.market_cap.to_string(),
-            pair.open_hour.to_string(),
-            pair.high_hour.to_string(),
-            pair.low_hour.to_string(),
-            pair.open_day.to_string(),
-            pair.high_day.to_string(),
-            pair.low_day.to_string(),
-            pair.open_24_hour.to_string(),
-            pair.high_24_hour.to_string(),
-            pair.low_24_hour.to_string()
-        ];
-
 
         write_data(&frame, &timestamp, master);
-        //BTC,ETH,BCH,LTC,EOS,BNB,XMR,DASH,VEN,NEO,ETC,ZEC,WAVES,BTG,DCR,REP,GNO,MCO,FCT,HSR,DGD,XZC,VERI,PART,GAS,ZEN,GBYTE,BTCD,MLN,XCP,XRP,MAID
+        //want to test all columns in all tables, but there is a inference issue when query string is formatted
+        //and there is a no such var as row issue when closure adds each column to result_vec
         let storage = Connection::open("test.db").expect("failed to open the database");
         let mut statement = storage.prepare("SELECT * FROM BTCandUSD;").expect("failed to prepare statement");
         let row_iter = statement.query_map(NO_PARAMS, |row| row.get(28)).expect("failed to map rows");
@@ -721,11 +715,69 @@ mod tests {
 
     }
 
+    fn write_data_adds_valid_columns() -> Result <(), ()> {
+        let master = DB {
+            path: Some("test.db".to_string()),
+            storage_device: None
+        };
+
+        let (frame, timestamp) = get_fake_data();
+
+        let expect_set: HashSet<&str> = [
+            "timestamp",
+            "last_update",
+            "price",
+            "last_market",
+            "last_volume_crypto",
+            "volume_hour_crypto",
+            "volume_day_crypto",
+            "volume_24_hour_crypto",
+            "total_volume_24_hour_crypto",
+            "last_volume_fiat",
+            "volume_hour_fiat",
+            "volume_day_fiat",
+            "volume_24_hour_fiat",
+            "total_volume_24_hour_fiat",
+            "change_day",
+            "change_pct_day",
+            "change_24_hour",
+            "change_pct_24_hour",
+            "supply",
+            "market_cap",
+            "open_hour",
+            "high_hour",
+            "low_hour",
+            "open_day",
+            "high_day",
+            "low_day",
+            "open_24_hour",
+            "high_24_hour",
+            "low_24_hour",
+        ].iter().cloned().collect();
+
+        write_data(&frame, &timestamp, master);
+        //want to test all columns in all tables, but there is a inference issue when query string is formatted
+        //and there is a no such var as row issue when closure adds each column to result_vec
+        let storage = Connection::open("test.db").expect("failed to open the database");
+        let mut statement = storage.prepare("SELECT * FROM BTCandUSD;").expect("failed to prepare statement");
+        let column_vec = statement.column_names();
+
+        let column_set: HashSet<&str> = column_vec.iter().cloned().collect();
+
+        if expect_set == column_set {
+            Ok(())
+        } else {
+            Err(())
+        }
+
+    }
+
     #[test]
     fn write_data_group(){
         write_data_creates_db_when_none().expect("write_data failed to create master");
         write_data_adds_valid_tables_to_db().expect("write_data failed to add tables to DB");
-        write_data_adds_valid_row_to_one_table().expect("write_data failed to add a valid row to the  first table");
+        write_data_adds_valid_columns().expect("write_data failed to add valid columns");
+        //write_data_adds_valid_row_to_one_table().expect("write_data failed to add a valid row to the  first table");
     }
 
 
