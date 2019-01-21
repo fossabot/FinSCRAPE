@@ -85,7 +85,7 @@ fn get_data() -> (HashMap<String, CryptoFiat>, u64) {
     for crypto in object.keys() {
         for fiat in object[crypto].as_object().unwrap().keys() {
             let pair_block: CryptoFiat = serde_json::from_value(object[crypto][fiat].clone()).expect("failed to convert untyped map to typed struct");
-            frame.entry(format!("{}-{}", crypto, fiat)).or_insert(pair_block);
+            frame.entry(format!("{}and{}", crypto, fiat)).or_insert(pair_block);
         }
     }
 
@@ -106,6 +106,15 @@ fn write_data(frame: &HashMap<String, CryptoFiat>, timestamp: &u64, master: DB) 
     //that should be the safe to unmount notification for the previous drive
 
     let storage = Connection::open(master.path.unwrap()).expect("failed to open or create master");
+    for table_name in frame.keys() {
+            let table_statement = format!("CREATE TABLE {} (
+                  id              INTEGER PRIMARY KEY,
+                  name            TEXT NOT NULL,
+                  time_created    TEXT NOT NULL,
+                  data            BLOB
+                  )", table_name);
+            storage.execute(&table_statement, NO_PARAMS).expect("failed to create table");
+    }
 
     storage.close();
 }
@@ -164,7 +173,7 @@ fn queue_frames(mut queue: HashMap<String, Vec<Vec<String>>>,
     //          queue[pair].remove(0)
     //
     //queue is hashmap<String, Vec<Vec<String>>> (
-    //                                      "BTC-USD": [writeVEC0, writeVEC1], 
+    //                                      "BTCandUSD": [writeVEC0, writeVEC1], 
     //                                      "ETH-USD": [writeVEC0, writeVEC1]
     //                                    )
     //with each subkey a hashmap (of different pairs) at a different timestamp
@@ -422,7 +431,7 @@ mod tests {
         for crypto in object.keys() {
             for fiat in object[crypto].as_object().unwrap().keys() {
                 let pair_block: CryptoFiat = serde_json::from_value(object[crypto][fiat].clone()).expect("failed to convert untyped map to typed struct");
-                frame.entry(format!("{}-{}", crypto, fiat)).or_insert(pair_block);
+                frame.entry(format!("{}and{}", crypto, fiat)).or_insert(pair_block);
             }
         }
 
@@ -434,8 +443,8 @@ mod tests {
     #[test]
     fn get_fake_data_returns_valid_frame() {
         let (frame, timestamp) = get_fake_data();
-        if frame["BTC-USD"].crypto_symbol != "BTC" ||
-           frame["BTC-USD"].fiat_symbol != "USD" {
+        if frame["BTCandUSD"].crypto_symbol != "BTC" ||
+           frame["BTCandUSD"].fiat_symbol != "USD" {
                panic!("get_fake_data returned an invalid frame");
            }
     }
@@ -466,8 +475,8 @@ mod tests {
 
     fn get_data_creates_valid_frame() -> Result<(), ()> {
         let (frame, timestamp) = get_data();
-        if frame["BTC-USD"].crypto_symbol == "BTC" &&
-           frame["BTC-USD"].fiat_symbol == "USD"
+        if frame["BTCandUSD"].crypto_symbol == "BTC" &&
+           frame["BTCandUSD"].fiat_symbol == "USD"
         {
             Ok(())
         }
@@ -496,7 +505,7 @@ mod tests {
 
     fn arrange_vec_has_29_items() -> Result<(), ()> {
         let (frame, timestamp) = get_fake_data();
-        let pair = &frame["BTC-USD"];
+        let pair = &frame["BTCandUSD"];
         let writeVEC = arrange_vec(&pair, &timestamp);
         if writeVEC.len() == 29 {
             Ok(())
@@ -507,7 +516,7 @@ mod tests {
 
     fn arrange_vec_returns_valid_writevec() -> Result<(), ()> {
         let (frame, timestamp) = get_fake_data();
-        let pair = &frame["BTC-USD"];
+        let pair = &frame["BTCandUSD"];
         let writeVEC = arrange_vec(&pair, &timestamp);
         if writeVEC[0].len() == 10 &&
             //market
@@ -598,7 +607,7 @@ mod tests {
         let storage = Connection::open("test.db").expect("failed to open the database");
         let mut table_vec: HashSet<String> = [].iter().cloned().collect();
         let expect_vec: HashSet<String> = [
-                                            "BTC-USD".to_owned(),
+                                            "BTCandUSD".to_owned(),
                                             "ETH-USD".to_owned(),
                                             "BCH-USD".to_owned(),
                                             "LTC-USD".to_owned(),
@@ -651,7 +660,7 @@ mod tests {
     #[test]
     fn write_data_group(){
         write_data_creates_db_when_none().expect("write_data failed to create master");
-        write_data_adds_valid_tables_to_db().expect("write_data failed to add tables to DB")
+        write_data_adds_valid_tables_to_db().expect("write_data failed to add tables to DB");
     }
 
 
