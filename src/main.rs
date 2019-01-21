@@ -110,8 +110,9 @@ fn write_data(frame: &HashMap<String, CryptoFiat>, timestamp: &u64, master: DB) 
     */
 
     let storage = Connection::open(master.path.unwrap()).expect("failed to open or create master");
+    
     for table_name in frame.keys() {
-            let table_statement = format!("CREATE TABLE {} (
+            let table_statement = format!("CREATE TABLE IF NOT EXISTS {} (
                     timestamp              TEXT NOT NULL,
                     last_update            TEXT NOT NULL,
                     price    TEXT NOT NULL,
@@ -144,8 +145,74 @@ fn write_data(frame: &HashMap<String, CryptoFiat>, timestamp: &u64, master: DB) 
                   )", table_name);
             storage.execute(&table_statement, NO_PARAMS).expect("failed to create table");
     }
-
-    storage.close();
+    for key in frame.keys(){
+        let pair = &frame[key];
+        let writeVEC = arrange_vec(&pair, &timestamp);
+        let table_statement = format!("INSERT INTO {} (
+                    timestamp,
+                    last_update,
+                    price,
+                    last_market,
+                    last_volume_crypto,
+                    volume_hour_crypto,
+                    volume_day_crypto,
+                    volume_24_hour_crypto,
+                    total_volume_24_hour_crypto,
+                    last_volume_fiat,
+                    volume_hour_fiat,
+                    volume_day_fiat,
+                    volume_24_hour_fiat,
+                    total_volume_24_hour_fiat,
+                    change_day,
+                    change_pct_day,
+                    change_24_hour,
+                    change_pct_24_hour,
+                    supply,
+                    market_cap,
+                    open_hour,
+                    high_hour,
+                    low_hour,
+                    open_day,
+                    high_day,
+                    low_day,
+                    open_24_hour,
+                    high_24_hour,
+                    low_24_hour
+                    ) VALUES (
+                        ?1,
+                        ?2,
+                        ?3,
+                        ?4,
+                        ?5,
+                        ?6,
+                        ?7,
+                        ?8,
+                        ?9,
+                        ?10,
+                        ?11,
+                        ?12,
+                        ?13,
+                        ?14,
+                        ?15,
+                        ?16,
+                        ?17,
+                        ?18,
+                        ?19,
+                        ?20,
+                        ?21,
+                        ?22,
+                        ?23,
+                        ?24,
+                        ?25,
+                        ?26,
+                        ?27,
+                        ?28,
+                        ?29
+                    )", key
+            );
+            storage.execute(&table_statement, writeVEC).expect("failed to write to master");
+    }
+    storage.close().expect("failed to close the db");
 }
 
 fn arrange_vec(pair: &CryptoFiat, timestamp: &u64) -> Vec<String> {
@@ -781,7 +848,7 @@ mod tests {
         write_data_creates_db_when_none().expect("write_data failed to create master");
         write_data_adds_valid_tables_to_db().expect("write_data failed to add tables to DB");
         write_data_adds_valid_columns().expect("write_data failed to add valid columns");
-        //write_data_adds_valid_row_to_one_table().expect("write_data failed to add a valid row to the  first table");
+        write_data_adds_valid_row_to_one_table().expect("write_data failed to add a valid row to the  first table");
     }
 
 
