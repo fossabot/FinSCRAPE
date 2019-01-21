@@ -12,7 +12,7 @@ extern crate reqwest;
 //this will be used to create and add to databases
 /* HARDEST TASK */
 extern crate rusqlite;
-use rusqlite::{Connection, NO_PARAMS};
+use rusqlite::{Connection, NO_PARAMS, MappedRows, Row};
 
 //this will be used to query the storage devices available
 extern crate systemstat;
@@ -541,7 +541,7 @@ mod tests {
     #[test]
     fn arrange_vec_test_group(){
         arrange_vec_has_29_items().expect("arrange_vec returns an incorrect number of items");
-        arrange_vec_returns_valid_writevec().expect("arrange_vec returns an invalid writeVEC")
+        arrange_vec_returns_valid_writevec().expect("arrange_vec returns an invalid writeVEC");
     }
 
 
@@ -642,14 +642,12 @@ mod tests {
                                             ].iter().cloned().collect();
         //this statement works when run alone in sqlite3 prompt
         let mut statement = storage.prepare("SELECT name FROM sqlite_master WHERE type='table';").expect("failed to prepare statement");
-        //this returns 0 items, which is why it fails later on
         let table_iter = statement.query_map(NO_PARAMS, |row| row.get(0)).expect("failed to map rows");
 
         for row in table_iter {
             table_vec.insert(row.expect("row error"));
         }
 
-        //table_vec.len() is 0
         if expect_vec == table_vec {
             fs::remove_file("test.db").expect("failed to remove file after match");
             Ok(())
@@ -660,14 +658,74 @@ mod tests {
         
     }
 
-    fn write_data_adds_valid_row_to_table() -> Result <(), ()> {
-        Err(())
+    fn write_data_adds_valid_row_to_one_table() -> Result <(), ()> {
+        let master = DB {
+            path: Some("test.db".to_string()),
+            storage_device: None
+        };
+
+        let (frame, timestamp) = get_fake_data();
+
+        let pair = &frame["BTCandUSD"];
+        let expect_vec = vec![
+            timestamp.to_string(),
+            pair.last_update.to_string(),
+            pair.price.to_string(),
+            pair.last_market.to_string(),
+            pair.last_volume_crypto.to_string(),
+            pair.volume_hour_crypto.to_string(),
+            pair.volume_day_crypto.to_string(),
+            pair.volume_24_hour_crypto.to_string(),
+            pair.total_volume_24_hour_crypto.to_string(),
+            pair.last_volume_fiat.to_string(),
+            pair.volume_hour_fiat.to_string(),
+            pair.volume_day_fiat.to_string(),
+            pair.volume_24_hour_fiat.to_string(),
+            pair.total_volume_24_hour_fiat.to_string(),
+            pair.change_day.to_string(),
+            pair.change_pct_day.to_string(),
+            pair.change_24_hour.to_string(),
+            pair.change_pct_24_hour.to_string(),
+            pair.supply.to_string(),
+            pair.market_cap.to_string(),
+            pair.open_hour.to_string(),
+            pair.high_hour.to_string(),
+            pair.low_hour.to_string(),
+            pair.open_day.to_string(),
+            pair.high_day.to_string(),
+            pair.low_day.to_string(),
+            pair.open_24_hour.to_string(),
+            pair.high_24_hour.to_string(),
+            pair.low_24_hour.to_string()
+        ];
+
+
+        write_data(&frame, &timestamp, master);
+        //BTC,ETH,BCH,LTC,EOS,BNB,XMR,DASH,VEN,NEO,ETC,ZEC,WAVES,BTG,DCR,REP,GNO,MCO,FCT,HSR,DGD,XZC,VERI,PART,GAS,ZEN,GBYTE,BTCD,MLN,XCP,XRP,MAID
+        let storage = Connection::open("test.db").expect("failed to open the database");
+        let mut statement = storage.prepare("SELECT * FROM BTCandUSD;").expect("failed to prepare statement");
+        let row_iter = statement.query_map(NO_PARAMS, |row| row.get(28)).expect("failed to map rows");
+
+        let mut result = "".to_string();
+        for row in row_iter {
+            result = row.expect("unable to unwrap row from row_iter");
+        }
+
+        if result == pair.low_24_hour.to_string() {            
+            fs::remove_file("test.db").expect("failed to remove file after match");
+            Ok(())
+        } else {
+            fs::remove_file("test.db").expect("failed to remove file after match");
+            Err(())
+        }
+
     }
 
     #[test]
     fn write_data_group(){
         write_data_creates_db_when_none().expect("write_data failed to create master");
         write_data_adds_valid_tables_to_db().expect("write_data failed to add tables to DB");
+        write_data_adds_valid_row_to_one_table().expect("write_data failed to add a valid row to the  first table");
     }
 
 
