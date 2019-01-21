@@ -640,18 +640,21 @@ mod tests {
                                             "ZECandUSD".to_string(),
                                             "ZENandUSD".to_string()
                                             ].iter().cloned().collect();
-        
+        //this statement works when run alone in sqlite3 prompt
         let mut statement = storage.prepare("SELECT name FROM sqlite_master WHERE type='table';").expect("failed to prepare statement");
         //this returns 0 items, which is why it fails later on
-        let table_iter = statement.query_map(NO_PARAMS, |row| {
-            let pair: String = row.get(0);
-            table_vec.insert(pair.to_owned());
-        });
+        let table_iter = statement.query_map(NO_PARAMS, |row| row.get(0)).expect("failed to map rows");
+
+        for row in table_iter {
+            table_vec.insert(row.expect("row error"));
+        }
 
         //table_vec.len() is 0
         if expect_vec == table_vec {
+            fs::remove_file("test.db").expect("failed to remove file after match");
             Ok(())
         } else {
+            fs::remove_file("test.db").expect("failed to remove file after match");
             Err(())
         }
         
