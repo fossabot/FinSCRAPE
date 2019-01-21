@@ -106,37 +106,41 @@ fn write_data(frame: &HashMap<String, CryptoFiat>, timestamp: &u64, master: DB) 
     //that should be the safe to unmount notification for the previous drive
 
     /*
-                    timestamp              TEXT NOT NULL,
-                last_update            TEXT NOT NULL,
-                price    TEXT NOT NULL,
-                last_market    TEXT NOT NULL,
-                last_volume_crypto    TEXT NOT NULL,
-                volume_hour_crypto    TEXT NOT NULL,
-                volume_day_crypto    TEXT NOT NULL,
-                volume_24_hour_crypto    TEXT NOT NULL,
-                last_volume_fiat    TEXT NOT NULL,
-                volume_hour_fiat    TEXT NOT NULL,
-                volume_day_fiat    TEXT NOT NULL,
-                volume_24_hour_fiat    TEXT NOT NULL,
-                total_volume_24_hour_fiat    TEXT NOT NULL,
-                change_day    TEXT NOT NULL,
-                change_pct_day    TEXT NOT NULL,
-                change_24_hour    TEXT NOT NULL,
-                change_pct_24_hour    TEXT NOT NULL,
-                supply    TEXT NOT NULL,
-                market_cap    TEXT NOT NULL,
-                market_cap    TEXT NOT NULL,
-                market_cap    TEXT NOT NULL,
-                market_cap    TEXT NOT NULL,
 
     */
 
     let storage = Connection::open(master.path.unwrap()).expect("failed to open or create master");
     for table_name in frame.keys() {
             let table_statement = format!("CREATE TABLE {} (
-                bad_column  TEXT NOT NULL
-
-
+                    timestamp              TEXT NOT NULL,
+                    last_update            TEXT NOT NULL,
+                    price    TEXT NOT NULL,
+                    last_market    TEXT NOT NULL,
+                    last_volume_crypto    TEXT NOT NULL,
+                    volume_hour_crypto    TEXT NOT NULL,
+                    volume_day_crypto    TEXT NOT NULL,
+                    volume_24_hour_crypto    TEXT NOT NULL,
+                    total_volume_24_hour_crypto TEXT NOT NULL,
+                    last_volume_fiat    TEXT NOT NULL,
+                    volume_hour_fiat    TEXT NOT NULL,
+                    volume_day_fiat    TEXT NOT NULL,
+                    volume_24_hour_fiat    TEXT NOT NULL,
+                    total_volume_24_hour_fiat    TEXT NOT NULL,
+                    change_day    TEXT NOT NULL,
+                    change_pct_day    TEXT NOT NULL,
+                    change_24_hour    TEXT NOT NULL,
+                    change_pct_24_hour    TEXT NOT NULL,
+                    supply    TEXT NOT NULL,
+                    market_cap    TEXT NOT NULL,
+                    open_hour    TEXT NOT NULL,
+                    high_hour    TEXT NOT NULL,
+                    low_hour    TEXT NOT NULL,
+                    open_day    TEXT NOT NULL,
+                    high_day    TEXT NOT NULL,
+                    low_day    TEXT NOT NULL,
+                    open_24_hour    TEXT NOT NULL,
+                    high_24_hour    TEXT NOT NULL,
+                    low_24_hour    TEXT NOT NULL
                   )", table_name);
             storage.execute(&table_statement, NO_PARAMS).expect("failed to create table");
     }
