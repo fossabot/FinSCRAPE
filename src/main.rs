@@ -607,50 +607,54 @@ mod tests {
         let storage = Connection::open("test.db").expect("failed to open the database");
         let mut table_vec: HashSet<String> = [].iter().cloned().collect();
         let expect_vec: HashSet<String> = [
-                                            "BTCandUSD".to_owned(),
-                                            "ETH-USD".to_owned(),
-                                            "BCH-USD".to_owned(),
-                                            "LTC-USD".to_owned(),
-                                            "EOS-USD".to_owned(),
-                                            "BNB-USD".to_owned(),
-                                            "XMR-USD".to_owned(),
-                                            "DASH-USD".to_owned(),
-                                            "VEN-USD".to_owned(),
-                                            "NEO-USD".to_owned(),
-                                            "ETC-USD".to_owned(),
-                                            "ZEC-USD".to_owned(),
-                                            "WAVES-USD".to_owned(),
-                                            "BTG-USD".to_owned(),
-                                            "DCR-USD".to_owned(),
-                                            "REP-USD".to_owned(),
-                                            "GNO-USD".to_owned(),
-                                            "MCO-USD".to_owned(),
-                                            "FCT-USD".to_owned(),
-                                            "HSR-USD".to_owned(),
-                                            "DGD-USD".to_owned(),
-                                            "XZC-USD".to_owned(),
-                                            "VERI-USD".to_owned(),
-                                            "PART-USD".to_owned(),
-                                            "GAS-USD".to_owned(),
-                                            "ZEN-USD".to_owned(),
-                                            "GBYTE-USD".to_owned(),
-                                            "BTCD-USD".to_owned(),
-                                            "MLN-USD".to_owned(),
-                                            "XCP-USD".to_owned(),
-                                            "XRP-USD".to_owned(),
-                                            "MAID-USD".to_owned()
+                                            "BCHandUSD".to_string(),
+                                            "BNBandUSD".to_string(),
+                                            "BTCDandUSD".to_string(),
+                                            "BTCandUSD".to_string(),
+                                            "BTGandUSD".to_string(),
+                                            "DASHandUSD".to_string(),
+                                            "DCRandUSD".to_string(),
+                                            "DGDandUSD".to_string(),
+                                            "EOSandUSD".to_string(),
+                                            "ETCandUSD".to_string(),
+                                            "ETHandUSD".to_string(),
+                                            "FCTandUSD".to_string(),
+                                            "GASandUSD".to_string(),
+                                            "GBYTEandUSD".to_string(),
+                                            "GNOandUSD".to_string(),
+                                            "HSRandUSD".to_string(),
+                                            "LTCandUSD".to_string(),
+                                            "MAIDandUSD".to_string(),
+                                            "MCOandUSD".to_string(),
+                                            "MLNandUSD".to_string(),
+                                            "NEOandUSD".to_string(),
+                                            "PARTandUSD".to_string(),
+                                            "REPandUSD".to_string(),
+                                            "VENandUSD".to_string(),
+                                            "VERIandUSD".to_string(),
+                                            "WAVESandUSD".to_string(),
+                                            "XCPandUSD".to_string(),
+                                            "XMRandUSD".to_string(),
+                                            "XRPandUSD".to_string(),
+                                            "XZCandUSD".to_string(),
+                                            "ZECandUSD".to_string(),
+                                            "ZENandUSD".to_string()
                                             ].iter().cloned().collect();
         
         let mut statement = storage.prepare("SELECT name FROM sqlite_master WHERE type='table';").expect("failed to prepare statement");
+        //this returns 0 items, which is why it fails later on
         let table_iter = statement.query_map(NO_PARAMS, |row| {
-            table_vec.insert(row.get(0))
+            let pair: String = row.get(0);
+            table_vec.insert(pair.to_owned());
         });
 
+        //table_vec.len() is 0
         if expect_vec == table_vec {
             Ok(())
         } else {
             Err(())
         }
+        
     }
 
     fn write_data_adds_valid_row_to_table() -> Result <(), ()> {
