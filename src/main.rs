@@ -37,7 +37,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
  #[allow(bad_style)]
 
-/*
+/* 9th
 fn set_disk(mut master: &DB, mut metrics: &DB) {
     //check conf file for current master dir in binary directory
     //get a list of storage devices
@@ -57,7 +57,7 @@ fn set_disk(mut master: &DB, mut metrics: &DB) {
 }
 */
 
-/*
+/* 8th
 fn notify(reason: &Notify) {
     //this will send emails or other correspondence to the operator
 }
@@ -94,21 +94,6 @@ fn get_data() -> (HashMap<String, CryptoFiat>, u64) {
 }
 
 fn write_data(frame: &HashMap<String, CryptoFiat>, timestamp: &u64, master: DB) {
-    //for each write, do checks if master, table, etc exist
-    //that way if the disk is changed it can write a new master
-    //rather than loosing a row
-    //for pair in frame.keys():
-    //  writeVEC = arrange_vec(frame[pair], timestamp)
-    //  create table called pair if none
-    //  write new row to table using writevec
-    //set_labels() if the write to single master takes to long, this can be par_itered with multiple dbs instead of tables
-    //if new master/tables etc then notify(new master established) as soon as the first row is written
-    //that should be the safe to unmount notification for the previous drive
-
-    /*
-
-    */
-
     let storage = Connection::open(master.path.unwrap()).expect("failed to open or create master");
     
     for table_name in frame.keys() {
@@ -249,7 +234,7 @@ fn arrange_vec(pair: &CryptoFiat, timestamp: &u64) -> Vec<String> {
     writeVEC
 }
 
-/* 5th
+/* 4th
 fn queue_frames(mut queue: HashMap<String, Vec<Vec<String>>>, 
                 frame: &HashMap<String, CryptoFiat>, 
                 timestamp: &u64
@@ -276,16 +261,7 @@ fn queue_frames(mut queue: HashMap<String, Vec<Vec<String>>>,
 }
 */
 
-/* 3rd
-fn set_labels(mut metricVEC: Vec<u64>, duration: u64) -> Vec<u64> {
-    //this will be called from inside functions to update the metrics struct
-    //framestamp, set_disk, get_agent_config, get_data, queue_frames, inform_agent, write_data, agent_action, main_loop
-    //each field will be an int calculated by timecomplete - timestart
-    
-}
-*/
-
-/* 4th
+/* 5th
 fn measure(metricVEC: Vec<u64>, master: DB) {
     //for each write do checks if master, table, etc exist
     //that way if the disk is changed it can write a new master
@@ -474,36 +450,36 @@ fn main() {
     let mut queue: HashMap<String, Vec<Vec<String>>> = HashMap::new();
 
     loop{
-        let mut metricVEC: Vec<i64> = vec![];
+        let mut metricVEC: Vec<u64> = vec![];
         let start = Instant::now();
         //set_disk(&master, &metrics);
         let duration = start.elapsed().as_secs();
-        //metricVEC = set_labels(metricVEC, duration);
+        metricVEC.push(duration);
 
         let start = Instant::now();
         //let (frame, timestamp) = get_data();
         let duration = start.elapsed().as_secs();
-        //metricVEC = set_labels(metricVEC, duration);
+        metricVEC.push(duration);
 
         let start = Instant::now();
         //queue = queue_frames(queue, &frame, &timestamp);
         let duration = start.elapsed().as_secs();
-        //metricVEC = set_labels(metricVEC, duration);
+        metricVEC.push(duration);
 
         let start = Instant::now();
         //inform_agent(&queue);
         let duration = start.elapsed().as_secs();
-        //metricVEC = set_labels(metricVEC, duration);
+        metricVEC.push(duration);
 
         let start = Instant::now();
         //write_data(&frame, &timestamp);
         let duration = start.elapsed().as_secs();
-        //metricVEC = set_labels(metricVEC, duration);
+        metricVEC.push(duration);
 
         let start = Instant::now();
         //get_agent_metrics();
         let duration = start.elapsed().as_secs();
-        //metricVEC = set_labels(metricVEC, duration);
+        metricVEC.push(duration);
 
         //measure(metricVEC, metrics);
     }
