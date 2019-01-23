@@ -27,7 +27,8 @@ use std::fs;
 use std::env;
 use std::option;
 use std::result;
-use std::time::Instant;
+use std::{thread, time};
+use std::time::{Duration, Instant};
 use std::collections::{HashMap, HashSet};
 use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -75,6 +76,9 @@ fn get_data() -> (HashMap<String, CryptoFiat>, u64) {
                 .text().expect("unable to get text from the cryptocompare api response");
 
             break
+        } else {
+            let sleep_time = time::Duration::from_secs(1);
+            thread::sleep(sleep_time);
         }
     }
 
@@ -236,7 +240,7 @@ fn arrange_vec(pair: &CryptoFiat, timestamp: &u64) -> Vec<String> {
     writeVEC
 }
 
-/* 4th
+/*
 fn queue_frames(mut queue: HashMap<String, Vec<Vec<String>>>, 
                 frame: &HashMap<String, CryptoFiat>, 
                 timestamp: &u64
