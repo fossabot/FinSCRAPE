@@ -93,8 +93,10 @@ fn get_data() -> (HashMap<String, CryptoFiat>, u64) {
 
 }
 
-fn write_data(frame: &HashMap<String, CryptoFiat>, timestamp: &u64, master: DB) {
-    let storage = Connection::open(master.path.unwrap()).expect("failed to open or create master");
+fn write_data(frame: &HashMap<String, CryptoFiat>, timestamp: &u64, master: &DB) {
+    let db_path = master.path.to_owned();
+    let db_path = db_path.unwrap();
+    let storage = Connection::open(db_path).expect("failed to open or create master");
     
     for table_name in frame.keys() {
             let table_statement = format!("CREATE TABLE IF NOT EXISTS {} (
@@ -255,7 +257,7 @@ fn queue_frames(mut queue: HashMap<String, Vec<Vec<String>>>,
     //
     //queue is hashmap<String, Vec<Vec<String>>> (
     //                                      "BTCandUSD": [writeVEC0, writeVEC1], 
-    //                                      "ETH-USD": [writeVEC0, writeVEC1]
+    //                                      "ETHandUSD": [writeVEC0, writeVEC1]
     //                                    )
     //with each subkey a hashmap (of different pairs) at a different timestamp
 }
@@ -438,7 +440,7 @@ fn main() {
 //vecs and hashmaps all have length known, and can be defined
 
     let mut master = DB{
-        path: None,
+        path: Some("multi.db".to_string()),
         storage_device: None
     };
 
@@ -449,6 +451,8 @@ fn main() {
 
     let mut queue: HashMap<String, Vec<Vec<String>>> = HashMap::new();
 
+    let mut count = 0;
+
     loop{
         let mut metricVEC: Vec<u64> = vec![];
         let start = Instant::now();
@@ -457,7 +461,7 @@ fn main() {
         metricVEC.push(duration);
 
         let start = Instant::now();
-        //let (frame, timestamp) = get_data();
+        let (frame, timestamp) = get_data();
         let duration = start.elapsed().as_secs();
         metricVEC.push(duration);
 
@@ -472,7 +476,7 @@ fn main() {
         metricVEC.push(duration);
 
         let start = Instant::now();
-        //write_data(&frame, &timestamp);
+        write_data(&frame, &timestamp, &master);
         let duration = start.elapsed().as_secs();
         metricVEC.push(duration);
 
@@ -480,8 +484,14 @@ fn main() {
         //get_agent_metrics();
         let duration = start.elapsed().as_secs();
         metricVEC.push(duration);
-
+        let mut totalTIME  = 0;
+        for number in metricVEC {
+            totalTIME += number;
+        }
         //measure(metricVEC, metrics);
+        println!("{} frames captured", count);
+        println!("this iteration took {}s", totalTIME);
+        count += 1;
     }
 }
 
@@ -827,6 +837,28 @@ mod tests {
         write_data_adds_valid_row_to_one_table().expect("write_data failed to add a valid row to the  first table");
     }
 
+    fn queue_frames_returns_all_keys() -> Result <(), ()> {
+        //basic sanity check on the returned hashmap
+        Err(())
+    }
+
+    fn queue_frames_caps_at_conf_number() -> Result <(), ()> {
+        //this will check that the window size is correct (max frames before removing one),
+        //based on the agent_conf file
+
+        //create the conf file with x window size and 30 seconds duration
+        //check if queue wraps at x quantity of frames per key
+        Err(())
+    }
+
+    fn queue_frames_returns_conf_spaced_vecs() -> Result <(), ()> {
+        //this will check if the duration between timestamps is correct
+        //based on the agent_conf file
+
+        //create conf file with a window size of 10 and x duration where x > 30 and x % 30 == 0
+        //check if queue contains 10 vecs per key whose timestamps are x duration apart
+        Err(())
+    }
 
     #[test]
     fn queue_frames_group(){
