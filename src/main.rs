@@ -480,6 +480,7 @@ fn main() {
         metricVEC.push(duration);
 
         let start = Instant::now();
+        //this takes 9s for create and write, 3s for write
         write_data(&frame, &timestamp, &master);
         let duration = start.elapsed().as_secs();
         metricVEC.push(duration);
@@ -488,13 +489,10 @@ fn main() {
         //get_agent_metrics();
         let duration = start.elapsed().as_secs();
         metricVEC.push(duration);
-        let mut totalTIME  = 0;
-        for number in metricVEC {
-            totalTIME += number;
-        }
+
         //measure(metricVEC, metrics);
-        println!("{} frames captured", count);
-        println!("this iteration took {}s", totalTIME);
+        println!("{} frames captured", count +1);
+        println!("this function took {}s", metricVEC[4]);
         count += 1;
     }
 }
