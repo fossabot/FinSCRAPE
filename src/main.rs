@@ -1069,8 +1069,56 @@ mod tests {
     }
 
     fn queue_frames_returns_all_keys() -> Result <(), ()> {
-        //basic sanity check on the returned hashmap
-        Err(())
+        let (frame, timestamp) = get_many_fake_frames();
+        let mut queue = HashMap::new();
+        queue = queue_frames(queue, &frame, &timestamp);
+
+        let mut table_vec: HashSet<String> = [].iter().cloned().collect();
+        let expect_vec: HashSet<String> = [
+                                            "BCHandUSD".to_string(),
+                                            "BNBandUSD".to_string(),
+                                            "BTCDandUSD".to_string(),
+                                            "BTCandUSD".to_string(),
+                                            "BTGandUSD".to_string(),
+                                            "DASHandUSD".to_string(),
+                                            "DCRandUSD".to_string(),
+                                            "DGDandUSD".to_string(),
+                                            "EOSandUSD".to_string(),
+                                            "ETCandUSD".to_string(),
+                                            "ETHandUSD".to_string(),
+                                            "FCTandUSD".to_string(),
+                                            "GASandUSD".to_string(),
+                                            "GBYTEandUSD".to_string(),
+                                            "GNOandUSD".to_string(),
+                                            "HSRandUSD".to_string(),
+                                            "LTCandUSD".to_string(),
+                                            "MAIDandUSD".to_string(),
+                                            "MCOandUSD".to_string(),
+                                            "MLNandUSD".to_string(),
+                                            "NEOandUSD".to_string(),
+                                            "PARTandUSD".to_string(),
+                                            "REPandUSD".to_string(),
+                                            "VENandUSD".to_string(),
+                                            "VERIandUSD".to_string(),
+                                            "WAVESandUSD".to_string(),
+                                            "XCPandUSD".to_string(),
+                                            "XMRandUSD".to_string(),
+                                            "XRPandUSD".to_string(),
+                                            "XZCandUSD".to_string(),
+                                            "ZECandUSD".to_string(),
+                                            "ZENandUSD".to_string()
+                                            ].iter().cloned().collect();
+
+
+        for key in queue.keys() {
+            table_vec.insert(key.to_string());
+        }
+
+        if table_vec == expect_vec {
+            return Ok(());
+        } else {
+            return Err(())
+        }
     }
 
     fn queue_frames_caps_at_conf_number() -> Result <(), ()> {
@@ -1093,7 +1141,7 @@ mod tests {
 
     #[test]
     fn queue_frames_group(){
-        panic!("not implemented");
+        queue_frames_returns_all_keys().expect("queue_frames did not return the expected keys");
     }
 
 
