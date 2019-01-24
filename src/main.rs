@@ -26,6 +26,7 @@ extern crate csv;
 use std::str;
 use std::fs;
 use std::fs::File;
+use std::fs::OpenOptions;
 use std::env;
 use std::option;
 use std::result;
@@ -34,6 +35,7 @@ use std::{thread, time};
 use std::time::{Duration, Instant};
 use std::collections::{HashMap, HashSet};
 use std::time::{SystemTime, UNIX_EPOCH};
+
 
 //before running this as production, the pi should be set up running off the usb A port on the powerbar
 //with the hard drive plugged in to the AC port. should use the 80gb spinner and the 64gb usb as the initial
@@ -575,27 +577,31 @@ mod tests {
 
     //can probably use this in all tests as the specific data is not tested for
     fn get_many_fake_frames() -> (HashMap<String, tests::MiniCryptoFiat>, u64) {
-        let index: Box<Fn() -> String> = match File::open("test.txt") {
+        let index: Box<Fn() -> String> = match File::open("test_timestamp.txt") {
             //this was literally hitler to write, but its all mine from scratch
             Err(e) => Box::new(|| {
-                let mut file = File::create("test.txt").expect("failed to create test.txt");
-                file.write(&"1548299340".to_string().into_bytes()).expect("failed to write index to test.txt");
-                file.sync_all().expect("failed to sync file changes after writing test.txt");
-                "1548299340".to_string()
+                let mut file = File::create("test_timestamp.txt").expect("failed to create test_timestamp.txt");
+                file.write(&"1548299340".to_string().into_bytes()).expect("failed to write index to test_timestamp.txt");
+                file.sync_all().expect("failed to sync file changes after writing test_timestamp.txt");
+                "1548299340\u{0}\u{0}".to_string()
                 }),
 
             Ok(file) => Box::new(|| {
                 //it will be a good day for my program if this 12 byte buffer is exceeded by a unix timestamp
                 let mut index: [u8; 12] = [0; 12];
-                let mut file = File::open("test.txt").unwrap();
-                file.read(&mut index).expect("failed to read test.txt");
-                let output = str::from_utf8(&index).expect("failed to convert test.txt bytes to str");
+                let mut file = File::open("test_timestamp.txt").unwrap();
+                file.read(&mut index).expect("failed to read test_timestamp.txt");
+                let output = str::from_utf8(&index).expect("failed to convert test_timestamp.txt bytes to str");
                 output.to_string()
                 })
         };
 
         let index = &*index;
-        let index: String = index();
+        //this string is "1548299370\u{0}\u{0}"
+        //when i try to chop off the last two bytes, the valid frame test fails
+        //even though it should be using a fresh file each time
+        let index: String = index().trim().to_string();
+        let index: String = index[..index.len()-2].to_string();
 
         let table_vec = vec![
              "BCHandUSD".to_string(),
@@ -680,12 +686,16 @@ mod tests {
 
             frame.insert(table, single);
         }
+        let mut file = OpenOptions::new().create(false).write(true).append(false).open("test_timestamp.txt").expect("failed to open timestamp file for increment");
+        let writestamp = timestamp + 30;
+        let writestamp = writestamp.to_string();
+        file.write(&writestamp.into_bytes()).expect("failed to write to file for increment");
+        file.sync_all().expect("failed to sync file changes after writing test_timestamp.txt");
         return (frame, timestamp);
 
     }
 
-    #[test]
-    fn get_many_fake_frames_returns_valid_data(){
+    fn remove_test_timestamp() {
         let cargo = env::current_dir().expect("unable to find current dir");
         let tmp_path = cargo.to_str().expect("path is invalid unicode");
 
@@ -700,29 +710,53 @@ mod tests {
                                 //this converts the string slice into an owned string
                                 .to_owned().clone();
 
-            if fileNAME.contains("test.txt") {
+            if fileNAME.contains("test_timestamp.txt") {
                 fs::remove_file(&entry.path()).expect("failed to remove file after match");
             }
         }
-
-        let (frame, timestamp) = get_many_fake_frames();
-        assert_eq!(frame["BTCandUSD"].timestamp, 1548299370);
-        assert_eq!(frame["MAIDandUSD"].price, 0.1203174445);
     }
 
-    #[test]
-    fn get_many_fake_frames_resets_after_all_frames() {
+    fn get_many_fake_frames_returns_valid_data() -> Result<(), ()>{
+        remove_test_timestamp();
+        let (frame, timestamp) = get_many_fake_frames();
+        if frame["BTCandUSD"].timestamp != 1548299370 {
+            remove_test_timestamp();
+            return Err(());
+        } else if frame["MAIDandUSD"].price != 0.1203174445 {
+            remove_test_timestamp();
+            return Err(());
+        }
+        Ok(())
+    }
+
+    fn get_many_fake_frames_resets_after_db_exhausted() -> Result<(), ()> {
+        remove_test_timestamp();
         //this may need to be 505 because its upper bound is not inclusive
-        for iteration in 2..505 {
+        for iteration in 0..252 {
             let (frame, timestamp) = get_many_fake_frames();
         }
-
+        println!("got past the values in the db");
         let (frame, timestamp) = get_many_fake_frames();
         //this should equal the second timestamp, because the get_many will never return the first
         //as the SELECT is > timestamp (which defaults to the first)
-        if timestamp != 1548299370 {
-            panic!("timestamp did not overflow correctly");
+    
+        if timestamp != 1548299340 {
+            remove_test_timestamp();
+            return Err(());
         }
+
+        remove_test_timestamp();
+        Ok(())
+
+    }
+
+    #[test]
+    fn get_many_fake_util_group() {
+        //these create race condition, so they must be run sequentially in here
+        //or with -- --test-threads=1, the mutable that clashes is test_timestamp.txt
+        get_many_fake_frames_returns_valid_data().expect("get_many_fake returned invalid data");
+        get_many_fake_frames_resets_after_db_exhausted().expect("get_many_fake did not reset after db was exhausted");
+
     }
 
     //unit tests
