@@ -249,7 +249,7 @@ fn arrange_vec(pair: &CryptoFiat, timestamp: &u64) -> Vec<String> {
 //this may need to be generic in order to consume the test frames created from write_data
 
 fn queue_frames<T>(mut queue: HashMap<String, Vec<Vec<String>>>, 
-                frame: &T, 
+                frame: &HashMap<String, T>, 
                 timestamp: &u64
                 ) -> HashMap<String, Vec<Vec<String>>> {
     //this should read the agent conf file and set window_size and interval
@@ -271,7 +271,11 @@ fn queue_frames<T>(mut queue: HashMap<String, Vec<Vec<String>>>,
     //                                      "ETHandUSD": [writeVEC0, writeVEC1]
     //                                    )
     //with each subkey a hashmap (of different pairs) at a different timestamp
-    let queue: HashMap<String, Vec<Vec<String>>> = HashMap::new();
+    let mut queue: HashMap<String, Vec<Vec<String>>> = HashMap::new();
+    for key in frame.keys() {
+        queue.insert(key.to_string(), vec![vec!["".to_string()]]);
+    }
+
     queue
 }
 
