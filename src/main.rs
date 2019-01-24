@@ -240,9 +240,10 @@ fn arrange_vec(pair: &CryptoFiat, timestamp: &u64) -> Vec<String> {
     writeVEC
 }
 
-/*
-fn queue_frames(mut queue: HashMap<String, Vec<Vec<String>>>, 
-                frame: &HashMap<String, CryptoFiat>, 
+//this may need to be generic in order to consume the test frames created from write_data
+
+fn queue_frames<T>(mut queue: HashMap<String, Vec<Vec<String>>>, 
+                frame: &T, 
                 timestamp: &u64
                 ) -> HashMap<String, Vec<Vec<String>>> {
     //this should read the agent conf file and set window_size and interval
@@ -264,8 +265,10 @@ fn queue_frames(mut queue: HashMap<String, Vec<Vec<String>>>,
     //                                      "ETHandUSD": [writeVEC0, writeVEC1]
     //                                    )
     //with each subkey a hashmap (of different pairs) at a different timestamp
+    let queue: HashMap<String, Vec<Vec<String>>> = HashMap::new();
+    queue
 }
-*/
+
 
 /* 5th
 fn measure(metricVEC: Vec<u64>, master: DB) {
@@ -501,8 +504,41 @@ fn main() {
 mod tests {
     use super::*;
 
+        struct MiniCryptoFiat {
+            timestamp: String,
+            last_update: String,
+            price: String,
+            last_market: String,
+            last_volume_crypto: String,
+            volume_hour_crypto: String,
+            volume_day_crypto: String,
+            volume_24_hour_crypto: String,
+            total_volume_24_hour_crypto: String,
+            last_volume_fiat: String,
+            volume_hour_fiat: String,
+            volume_day_fiat: String,
+            volume_24_hour_fiat: String,
+            total_volume_24_hour_fiat: String,
+            change_day: String,
+            change_pct_day: String,
+            change_24_hour: String,
+            change_pct_24_hour: String,
+            supply: String,
+            market_cap: String,
+            open_hour: String,
+            high_hour: String,
+            low_hour: String,
+            open_day: String,
+            high_day: String,
+            low_day: String,
+            open_24_hour: String,
+            high_24_hour: String,
+            low_24_hour: String
+        }
+
+
     //utils
-    fn get_fake_data()-> (HashMap<String, CryptoFiat>, u64) {
+    fn get_one_fake_frame()-> (HashMap<String, CryptoFiat>, u64) {
         let json = fs::read_to_string("response_crypto.txt")
         .expect("Something went wrong reading the file");
 
@@ -525,15 +561,80 @@ mod tests {
     }
 
     #[test]
-    fn get_fake_data_returns_valid_frame() {
-        let (frame, timestamp) = get_fake_data();
+    fn get_one_fake_frame_returns_valid_frame() {
+        let (frame, timestamp) = get_one_fake_frame();
         if frame["BTCandUSD"].crypto_symbol != "BTC" ||
            frame["BTCandUSD"].fiat_symbol != "USD" {
-               panic!("get_fake_data returned an invalid frame");
+               panic!("get_one_fake_frame returned an invalid frame");
            }
     }
 
+    //can probably use this in all tests as the specific data is not tested for
+    fn get_many_fake_frames() -> (HashMap<String, tests::MiniCryptoFiat>, u64) {
+        //1548204990 first timestamp in multi.db
+        //if timestamp saved == 1548213960, reset to first timestamp
+        //this should store external state in a tmp file to increment, and if greater than x reset tmp to first timestamp
 
+        //for key in key list,
+        //read from db with SELECT * FROM {key} WHERE timestamp > x
+        //save the timestamp for after the loop
+        //add data to miniCryptoFIAT in key
+
+        //save timestamp
+
+        //return
+
+        let pair = MiniCryptoFiat {
+            timestamp: "String".to_string(),
+            last_update: "String".to_string(),
+            price: "String".to_string(),
+            last_market: "String".to_string(),
+            last_volume_crypto: "String".to_string(),
+            volume_hour_crypto: "String".to_string(),
+            volume_day_crypto: "String".to_string(),
+            volume_24_hour_crypto: "String".to_string(),
+            total_volume_24_hour_crypto: "String".to_string(),
+            last_volume_fiat: "String".to_string(),
+            volume_hour_fiat: "String".to_string(),
+            volume_day_fiat: "String".to_string(),
+            volume_24_hour_fiat: "String".to_string(),
+            total_volume_24_hour_fiat: "String".to_string(),
+            change_day: "String".to_string(),
+            change_pct_day: "String".to_string(),
+            change_24_hour: "String".to_string(),
+            change_pct_24_hour: "String".to_string(),
+            supply: "String".to_string(),
+            market_cap: "String".to_string(),
+            open_hour: "String".to_string(),
+            high_hour: "String".to_string(),
+            low_hour: "String".to_string(),
+            open_day: "String".to_string(),
+            high_day: "String".to_string(),
+            low_day: "String".to_string(),
+            open_24_hour: "String".to_string(),
+            high_24_hour: "String".to_string(),
+            low_24_hour: "String".to_string()
+        };
+
+        let mut frame = HashMap::new();
+        let timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs();
+
+        frame.insert("BTCandUSD".to_string(), pair);
+        return (frame, timestamp);
+
+    }
+
+
+    #[test]
+    fn get_many_fake_frames_resets_after_299_frames() {
+        for iteration in 0..299 {
+            let (frame, timestamp) = get_many_fake_frames();
+        }
+        let (frame, timestamp) = get_many_fake_frames();
+        if timestamp != 1548204990 {
+            panic!("timestamp did not overflow correctly");
+        }
+    }
 
     //unit tests
     #[test]
@@ -588,7 +689,7 @@ mod tests {
 
 
     fn arrange_vec_has_29_items() -> Result<(), ()> {
-        let (frame, timestamp) = get_fake_data();
+        let (frame, timestamp) = get_one_fake_frame();
         let pair = &frame["BTCandUSD"];
         let writeVEC = arrange_vec(&pair, &timestamp);
         if writeVEC.len() == 29 {
@@ -599,7 +700,7 @@ mod tests {
     }
 
     fn arrange_vec_returns_valid_writevec() -> Result<(), ()> {
-        let (frame, timestamp) = get_fake_data();
+        let (frame, timestamp) = get_one_fake_frame();
         let pair = &frame["BTCandUSD"];
         let writeVEC = arrange_vec(&pair, &timestamp);
         if writeVEC[0].len() == 10 &&
@@ -655,8 +756,8 @@ mod tests {
             }
         }
 
-        let (frame, timestamp) = get_fake_data();
-        write_data(&frame, &timestamp, master);
+        let (frame, timestamp) = get_one_fake_frame();
+        write_data(&frame, &timestamp, &master);
 
         let filesInSrc = fs::read_dir(&db_path).expect("failed to read contents of download directory");
 
@@ -685,8 +786,8 @@ mod tests {
             storage_device: None
         };
 
-        let (frame, timestamp) = get_fake_data();
-        write_data(&frame, &timestamp, master);
+        let (frame, timestamp) = get_one_fake_frame();
+        write_data(&frame, &timestamp, &master);
         //BTC,ETH,BCH,LTC,EOS,BNB,XMR,DASH,VEN,NEO,ETC,ZEC,WAVES,BTG,DCR,REP,GNO,MCO,FCT,HSR,DGD,XZC,VERI,PART,GAS,ZEN,GBYTE,BTCD,MLN,XCP,XRP,MAID
         let storage = Connection::open("test.db").expect("failed to open the database");
         let mut table_vec: HashSet<String> = [].iter().cloned().collect();
@@ -748,11 +849,11 @@ mod tests {
             storage_device: None
         };
 
-        let (frame, timestamp) = get_fake_data();
+        let (frame, timestamp) = get_one_fake_frame();
 
         let pair = &frame["BTCandUSD"];
 
-        write_data(&frame, &timestamp, master);
+        write_data(&frame, &timestamp, &master);
         //want to test all columns in all tables, but there is a inference issue when query string is formatted
         //and there is a no such var as row issue when closure adds each column to result_vec
         let storage = Connection::open("test.db").expect("failed to open the database");
@@ -780,7 +881,7 @@ mod tests {
             storage_device: None
         };
 
-        let (frame, timestamp) = get_fake_data();
+        let (frame, timestamp) = get_one_fake_frame();
 
         let expect_set: HashSet<&str> = [
             "timestamp",
@@ -814,7 +915,7 @@ mod tests {
             "low_24_hour",
         ].iter().cloned().collect();
 
-        write_data(&frame, &timestamp, master);
+        write_data(&frame, &timestamp, &master);
         //want to test all columns in all tables, but there is a inference issue when query string is formatted
         //and there is a no such var as row issue when closure adds each column to result_vec
         let storage = Connection::open("test.db").expect("failed to open the database");
