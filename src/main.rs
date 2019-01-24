@@ -575,21 +575,14 @@ mod tests {
 
     //can probably use this in all tests as the specific data is not tested for
     fn get_many_fake_frames() -> (HashMap<String, tests::MiniCryptoFiat>, u64) {
-        //if timestamp saved == 1548213960, write and set index to 1548204990
-
-        //this should store external state in a tmp file to increment, and if greater than x reset tmp to first timestamp
-
-
-        //save timestamp
-
-        //return
         let index: Box<Fn() -> String> = match File::open("test.txt") {
             //this was literally hitler to write, but its all mine from scratch
             Err(e) => Box::new(|| {
+//set new minimum timestamp
                 let mut file = File::create("test.txt").expect("failed to create test.txt");
-                file.write(&"1548204990".to_string().into_bytes()).expect("failed to write index to test.txt");
+                file.write(&"1548299340".to_string().into_bytes()).expect("failed to write index to test.txt");
                 file.sync_all().expect("failed to sync file changes after writing test.txt");
-                "1548204990".to_string()
+                "1548299340".to_string()
                 }),
             Ok(file) => Box::new(|| {
                 //it will be a good day for my program if this 12 byte buffer is exceeded by a unix timestamp
@@ -718,8 +711,8 @@ mod tests {
 
         let (frame, timestamp) = get_many_fake_frames();
 //dont forget to update min/max and specific values for new testsets
-        assert_eq!(frame["BTCandUSD"].timestamp, 1548205020);
-        assert_eq!(frame["MAIDandUSD"].price, 0.1181899205);
+        assert_eq!(frame["BTCandUSD"].timestamp, 1548299370);
+        assert_eq!(frame["MAIDandUSD"].price, 0.1203174445);
     }
 
     #[test]
@@ -728,7 +721,8 @@ mod tests {
             let (frame, timestamp) = get_many_fake_frames();
         }
         let (frame, timestamp) = get_many_fake_frames();
-        if timestamp != 1548204990 {
+//set new minumum time stamp, second from first
+        if timestamp != 1548299340 {
             panic!("timestamp did not overflow correctly");
         }
     }
