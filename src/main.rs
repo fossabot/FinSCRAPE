@@ -23,10 +23,13 @@ extern crate lettre;
 //this will be used to read/write csv files
 extern crate csv;
 
+use std::str;
 use std::fs;
+use std::fs::File;
 use std::env;
 use std::option;
 use std::result;
+use std::io::prelude::*;
 use std::{thread, time};
 use std::time::{Duration, Instant};
 use std::collections::{HashMap, HashSet};
@@ -104,7 +107,7 @@ fn write_data(frame: &HashMap<String, CryptoFiat>, timestamp: &u64, master: &DB)
     
     for table_name in frame.keys() {
             let table_statement = format!("CREATE TABLE IF NOT EXISTS {} (
-                    timestamp              TEXT NOT NULL,
+                    timestamp              NUMERIC NOT NULL,
                     last_update            TEXT NOT NULL,
                     price    TEXT NOT NULL,
                     last_market    TEXT NOT NULL,
@@ -571,56 +574,119 @@ mod tests {
 
     //can probably use this in all tests as the specific data is not tested for
     fn get_many_fake_frames() -> (HashMap<String, tests::MiniCryptoFiat>, u64) {
-        //read or create tmp file, if create write and set index to 1548204990
         //if timestamp saved == 1548213960, write and set index to 1548204990
 
         //this should store external state in a tmp file to increment, and if greater than x reset tmp to first timestamp
 
-        //for key in key list,
-        //read from db with SELECT * FROM {key} WHERE timestamp > x
-        //save the timestamp for after the loop
-        //add data to miniCryptoFIAT in key
 
         //save timestamp
 
         //return
-
-        let pair = MiniCryptoFiat {
-            timestamp: "String".to_string(),
-            last_update: "String".to_string(),
-            price: "String".to_string(),
-            last_market: "String".to_string(),
-            last_volume_crypto: "String".to_string(),
-            volume_hour_crypto: "String".to_string(),
-            volume_day_crypto: "String".to_string(),
-            volume_24_hour_crypto: "String".to_string(),
-            total_volume_24_hour_crypto: "String".to_string(),
-            last_volume_fiat: "String".to_string(),
-            volume_hour_fiat: "String".to_string(),
-            volume_day_fiat: "String".to_string(),
-            volume_24_hour_fiat: "String".to_string(),
-            total_volume_24_hour_fiat: "String".to_string(),
-            change_day: "String".to_string(),
-            change_pct_day: "String".to_string(),
-            change_24_hour: "String".to_string(),
-            change_pct_24_hour: "String".to_string(),
-            supply: "String".to_string(),
-            market_cap: "String".to_string(),
-            open_hour: "String".to_string(),
-            high_hour: "String".to_string(),
-            low_hour: "String".to_string(),
-            open_day: "String".to_string(),
-            high_day: "String".to_string(),
-            low_day: "String".to_string(),
-            open_24_hour: "String".to_string(),
-            high_24_hour: "String".to_string(),
-            low_24_hour: "String".to_string()
+        let index: Box<Fn() -> String> = match File::open("test.txt") {
+            //this was literally hitler to write, but its all mine from scratch
+            Err(e) => Box::new(|| {
+                let mut file = File::create("test.txt").expect("failed to create test.txt");
+                file.write(&"1548204990".to_string().into_bytes()).expect("failed to write index to test.txt");
+                file.sync_all().expect("failed to sync file changes after writing test.txt");
+                "1548204990".to_string()
+                }),
+            Ok(file) => Box::new(|| {
+                //it will be a good day for my program if this 12 byte buffer is exceeded by a unix timestamp
+                let mut index: [u8; 12] = [0; 12];
+                let mut file = File::open("test.txt").unwrap();
+                file.read(&mut index).expect("failed to read test.txt");
+                let output = str::from_utf8(&index).expect("failed to convert test.txt bytes to str");
+                output.to_string()
+                })
         };
 
-        let mut frame = HashMap::new();
-        let timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs();
+        let index = &*index;
+        let index: String = index();
 
-        frame.insert("BTCandUSD".to_string(), pair);
+        let table_vec = vec![
+             "BCHandUSD".to_string(),
+            "BNBandUSD".to_string(),
+            "BTCDandUSD".to_string(),
+            "BTCandUSD".to_string(),
+            "BTGandUSD".to_string(),
+            "DASHandUSD".to_string(),
+            "DCRandUSD".to_string(),
+            "DGDandUSD".to_string(),
+            "EOSandUSD".to_string(),
+            "ETCandUSD".to_string(),
+            "ETHandUSD".to_string(),
+            "FCTandUSD".to_string(),
+            "GASandUSD".to_string(),
+            "GBYTEandUSD".to_string(),
+            "GNOandUSD".to_string(),
+            "HSRandUSD".to_string(),
+            "LTCandUSD".to_string(),
+            "MAIDandUSD".to_string(),
+            "MCOandUSD".to_string(),
+            "MLNandUSD".to_string(),
+            "NEOandUSD".to_string(),
+            "PARTandUSD".to_string(),
+            "REPandUSD".to_string(),
+            "VENandUSD".to_string(),
+            "VERIandUSD".to_string(),
+            "WAVESandUSD".to_string(),
+            "XCPandUSD".to_string(),
+            "XMRandUSD".to_string(),
+            "XRPandUSD".to_string(),
+            "XZCandUSD".to_string(),
+            "ZECandUSD".to_string(),
+            "ZENandUSD".to_string()
+        ];
+
+        let storage = Connection::open("multi.db").expect("failed to open multi.db");
+        let mut frame = HashMap::new();
+        let mut timestamp: u64 = 0;
+
+        for table in table_vec {
+            let query = format!("SELECT * FROM {} WHERE timestamp > {}", &table, index);
+
+            let mut stmt = storage.prepare(&query).expect("failed to prepare query");
+
+            let pair_iter = stmt.query_map(NO_PARAMS, |row| MiniCryptoFiat {
+                timestamp: row.get(0),
+                last_update: row.get(1),
+                price: row.get(2),
+                last_market: row.get(3),
+                last_volume_crypto: row.get(4),
+                volume_hour_crypto: row.get(5),
+                volume_day_crypto: row.get(6),
+                volume_24_hour_crypto: row.get(7),
+                total_volume_24_hour_crypto: row.get(8),
+                last_volume_fiat: row.get(9),
+                volume_hour_fiat: row.get(10),
+                volume_day_fiat: row.get(11),
+                volume_24_hour_fiat: row.get(12),
+                total_volume_24_hour_fiat: row.get(13),
+                change_day: row.get(14),
+                change_pct_day: row.get(15),
+                change_24_hour: row.get(16),
+                change_pct_24_hour: row.get(17),
+                supply: row.get(18),
+                market_cap: row.get(19),
+                open_hour: row.get(20),
+                high_hour: row.get(21),
+                low_hour: row.get(22),
+                open_day: row.get(23),
+                high_day: row.get(24),
+                low_day: row.get(25),
+                open_24_hour: row.get(26),
+                high_24_hour: row.get(27),
+                low_24_hour: row.get(28)
+            }).expect("failed to run query");
+
+
+            for pair in pair_iter {
+                let pair = pair.expect("failed to convert data to struct");
+                timestamp = pair.timestamp.parse().expect("failed to convert string to u64");
+                let key = table.clone();
+                frame.insert(key, pair);
+            }
+        }
         return (frame, timestamp);
 
     }
