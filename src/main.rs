@@ -571,8 +571,9 @@ mod tests {
 
     //can probably use this in all tests as the specific data is not tested for
     fn get_many_fake_frames() -> (HashMap<String, tests::MiniCryptoFiat>, u64) {
-        //1548204990 first timestamp in multi.db
-        //if timestamp saved == 1548213960, reset to first timestamp
+        //read or create tmp file, if create write and set index to 1548204990
+        //if timestamp saved == 1548213960, write and set index to 1548204990
+
         //this should store external state in a tmp file to increment, and if greater than x reset tmp to first timestamp
 
         //for key in key list,
@@ -626,6 +627,26 @@ mod tests {
 
     #[test]
     fn get_many_fake_frames_returns_valid_data(){
+        //delete tmp file first
+        let cargo = env::current_dir().expect("unable to find current dir");
+        let tmp_path = cargo.to_str().expect("path is invalid unicode");
+
+        let filesInSrc = fs::read_dir(&tmp_path).expect("failed to read contents of download directory");
+
+        for fileNAME in filesInSrc {
+            let entry = fileNAME.expect("DirEntry returned 0");
+            let fileNAME: String = entry.file_name()
+                                //this converts the OSstr into a string slice
+                                .into_string()
+                                .expect("the file_name could not be converted to a string")
+                                //this converts the string slice into an owned string
+                                .to_owned().clone();
+
+            if fileNAME.contains("test.txt") {
+                fs::remove_file(&entry.path()).expect("failed to remove file after match");
+            }
+        }
+
         let (frame, timestamp) = get_many_fake_frames();
         assert_eq!(frame["BTCandUSD"].timestamp, "1548205020");
         assert_eq!(frame["MAIDandUSD"].price, "0.1181899205");
