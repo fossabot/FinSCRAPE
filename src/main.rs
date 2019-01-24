@@ -643,7 +643,7 @@ mod tests {
 
             let mut stmt = storage.prepare(&query).expect("failed to prepare query");
 
-            let pair_iter = stmt.query_map(index, |row| MiniCryptoFiat {
+            let mut pair_iter = stmt.query_map(index, |row| MiniCryptoFiat {
                 timestamp: row.get(0),
                 last_update: row.get(1),
                 price: row.get(2),
@@ -675,13 +675,10 @@ mod tests {
                 low_24_hour: row.get(28)
             }).expect("failed to run query");
 
+            let single = pair_iter.nth(0).expect("failed to index pair_iter").expect("second result for indexing pair iter has failed");
+            timestamp = single.timestamp as u64;
 
-            for pair in pair_iter {
-                let pair = pair.expect("failed to convert data to struct");
-                timestamp = pair.timestamp as u64;
-                let key = table.clone();
-                frame.insert(key, pair);
-            }
+            frame.insert(table, single);
         }
         return (frame, timestamp);
 
