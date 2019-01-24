@@ -602,6 +602,7 @@ mod tests {
         //even though it should be using a fresh file each time
         let index: String = index().trim().to_string();
         let index: String = index[..index.len()-2].to_string();
+        println!("index is: {}", index);
 
         let table_vec = vec![
              "BCHandUSD".to_string(),
@@ -644,7 +645,11 @@ mod tests {
 
         for table in table_vec {
             let query = format!("SELECT * FROM {} WHERE timestamp > ?", &table);
-            let index: i64 = index.clone().parse().expect("failed to convert index to i64");
+            let mut index: i64 = index.clone().parse().expect("failed to convert index to i64");
+            if index == 1548314460 {
+                println!("index reset");
+                index = 1548299340;
+            }
             let index = &[index];
 
             let mut stmt = storage.prepare(&query).expect("failed to prepare query");
@@ -740,7 +745,7 @@ mod tests {
         //this should equal the second timestamp, because the get_many will never return the first
         //as the SELECT is > timestamp (which defaults to the first)
     
-        if timestamp != 1548299340 {
+        if timestamp != 1548299370 {
             remove_test_timestamp();
             return Err(());
         }
