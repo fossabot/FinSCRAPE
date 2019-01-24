@@ -504,37 +504,37 @@ fn main() {
 mod tests {
     use super::*;
 
-        struct MiniCryptoFiat {
-            timestamp: String,
-            last_update: String,
-            price: String,
-            last_market: String,
-            last_volume_crypto: String,
-            volume_hour_crypto: String,
-            volume_day_crypto: String,
-            volume_24_hour_crypto: String,
-            total_volume_24_hour_crypto: String,
-            last_volume_fiat: String,
-            volume_hour_fiat: String,
-            volume_day_fiat: String,
-            volume_24_hour_fiat: String,
-            total_volume_24_hour_fiat: String,
-            change_day: String,
-            change_pct_day: String,
-            change_24_hour: String,
-            change_pct_24_hour: String,
-            supply: String,
-            market_cap: String,
-            open_hour: String,
-            high_hour: String,
-            low_hour: String,
-            open_day: String,
-            high_day: String,
-            low_day: String,
-            open_24_hour: String,
-            high_24_hour: String,
-            low_24_hour: String
-        }
+    struct MiniCryptoFiat {
+        timestamp: String,
+        last_update: String,
+        price: String,
+        last_market: String,
+        last_volume_crypto: String,
+        volume_hour_crypto: String,
+        volume_day_crypto: String,
+        volume_24_hour_crypto: String,
+        total_volume_24_hour_crypto: String,
+        last_volume_fiat: String,
+        volume_hour_fiat: String,
+        volume_day_fiat: String,
+        volume_24_hour_fiat: String,
+        total_volume_24_hour_fiat: String,
+        change_day: String,
+        change_pct_day: String,
+        change_24_hour: String,
+        change_pct_24_hour: String,
+        supply: String,
+        market_cap: String,
+        open_hour: String,
+        high_hour: String,
+        low_hour: String,
+        open_day: String,
+        high_day: String,
+        low_day: String,
+        open_24_hour: String,
+        high_24_hour: String,
+        low_24_hour: String
+    }
 
 
     //utils
@@ -624,6 +624,12 @@ mod tests {
 
     }
 
+    #[test]
+    fn get_many_fake_frames_returns_valid_data(){
+        let (frame, timestamp) = get_many_fake_frames();
+        assert_eq!(frame["BTCandUSD"].timestamp, "1548205020");
+        assert_eq!(frame["MAIDandUSD"].price, "0.1181899205");
+    }
 
     #[test]
     fn get_many_fake_frames_resets_after_299_frames() {
