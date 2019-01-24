@@ -1125,6 +1125,17 @@ mod tests {
         }
     }
 
+    fn queue_frames_returns_valid_data() -> Result <(), ()> {
+        let (frame, timestamp) = get_many_fake_frames();
+        let mut queue = HashMap::new();
+        queue = queue_frames(queue, &frame, &timestamp);
+        let thisBOX = &queue["BTCandUSD"][0][0];
+        let thisBOX: u64 = match thisBOX.parse::<u64>() {
+            Err(_) => return Err(()),
+            Ok(_) => return Ok(())
+        };
+    }
+
     fn queue_frames_caps_at_conf_number() -> Result <(), ()> {
         //this will check that the window size is correct (max frames before removing one),
         //based on the agent_conf file
@@ -1146,6 +1157,7 @@ mod tests {
     #[test]
     fn queue_frames_group(){
         queue_frames_returns_all_keys().expect("queue_frames did not return the expected keys");
+        queue_frames_returns_valid_data().expect("queue_frames did not return a parsable timestamp at [0][0] position");
     }
 
 
