@@ -107,35 +107,35 @@ fn write_data(frame: &HashMap<String, CryptoFiat>, timestamp: &u64, master: &DB)
     
     for table_name in frame.keys() {
             let table_statement = format!("CREATE TABLE IF NOT EXISTS {} (
-                    timestamp              NUMERIC NOT NULL,
-                    last_update            TEXT NOT NULL,
-                    price    TEXT NOT NULL,
+                    timestamp              INTERGER NOT NULL,
+                    last_update            INTEGER NOT NULL,
+                    price    REAL NOT NULL,
                     last_market    TEXT NOT NULL,
-                    last_volume_crypto    TEXT NOT NULL,
-                    volume_hour_crypto    TEXT NOT NULL,
-                    volume_day_crypto    TEXT NOT NULL,
-                    volume_24_hour_crypto    TEXT NOT NULL,
-                    total_volume_24_hour_crypto TEXT NOT NULL,
-                    last_volume_fiat    TEXT NOT NULL,
-                    volume_hour_fiat    TEXT NOT NULL,
-                    volume_day_fiat    TEXT NOT NULL,
-                    volume_24_hour_fiat    TEXT NOT NULL,
-                    total_volume_24_hour_fiat    TEXT NOT NULL,
-                    change_day    TEXT NOT NULL,
-                    change_pct_day    TEXT NOT NULL,
-                    change_24_hour    TEXT NOT NULL,
-                    change_pct_24_hour    TEXT NOT NULL,
-                    supply    TEXT NOT NULL,
-                    market_cap    TEXT NOT NULL,
-                    open_hour    TEXT NOT NULL,
-                    high_hour    TEXT NOT NULL,
-                    low_hour    TEXT NOT NULL,
-                    open_day    TEXT NOT NULL,
-                    high_day    TEXT NOT NULL,
-                    low_day    TEXT NOT NULL,
-                    open_24_hour    TEXT NOT NULL,
-                    high_24_hour    TEXT NOT NULL,
-                    low_24_hour    TEXT NOT NULL
+                    last_volume_crypto    REAL NOT NULL,
+                    volume_hour_crypto    REAL NOT NULL,
+                    volume_day_crypto    REAL NOT NULL,
+                    volume_24_hour_crypto    REAL NOT NULL,
+                    total_volume_24_hour_crypto REAL NOT NULL,
+                    last_volume_fiat    REAL NOT NULL,
+                    volume_hour_fiat    REAL NOT NULL,
+                    volume_day_fiat    REAL NOT NULL,
+                    volume_24_hour_fiat    REAL NOT NULL,
+                    total_volume_24_hour_fiat    REAL NOT NULL,
+                    change_day    REAL NOT NULL,
+                    change_pct_day    REAL NOT NULL,
+                    change_24_hour    REAL NOT NULL,
+                    change_pct_24_hour    REAL NOT NULL,
+                    supply    REAL NOT NULL,
+                    market_cap    REAL NOT NULL,
+                    open_hour    REAL NOT NULL,
+                    high_hour    REAL NOT NULL,
+                    low_hour    REAL NOT NULL,
+                    open_day    REAL NOT NULL,
+                    high_day    REAL NOT NULL,
+                    low_day    REAL NOT NULL,
+                    open_24_hour    REAL NOT NULL,
+                    high_24_hour    REAL NOT NULL,
+                    low_24_hour    REAL NOT NULL
                   )", table_name);
             storage.execute(&table_statement, NO_PARAMS).expect("failed to create table");
     }
@@ -210,6 +210,7 @@ fn write_data(frame: &HashMap<String, CryptoFiat>, timestamp: &u64, master: &DB)
 }
 
 fn arrange_vec(pair: &CryptoFiat, timestamp: &u64) -> Vec<String> {
+    
     let mut writeVEC: Vec<String> = vec![];
     writeVEC.push(timestamp.to_string());
     writeVEC.push(pair.last_update.to_string());
@@ -508,35 +509,35 @@ mod tests {
     use super::*;
 
     struct MiniCryptoFiat {
-        timestamp: String,
-        last_update: String,
-        price: String,
+        timestamp: i64,
+        last_update: i64,
+        price: f64,
         last_market: String,
-        last_volume_crypto: String,
-        volume_hour_crypto: String,
-        volume_day_crypto: String,
-        volume_24_hour_crypto: String,
-        total_volume_24_hour_crypto: String,
-        last_volume_fiat: String,
-        volume_hour_fiat: String,
-        volume_day_fiat: String,
-        volume_24_hour_fiat: String,
-        total_volume_24_hour_fiat: String,
-        change_day: String,
-        change_pct_day: String,
-        change_24_hour: String,
-        change_pct_24_hour: String,
-        supply: String,
-        market_cap: String,
-        open_hour: String,
-        high_hour: String,
-        low_hour: String,
-        open_day: String,
-        high_day: String,
-        low_day: String,
-        open_24_hour: String,
-        high_24_hour: String,
-        low_24_hour: String
+        last_volume_crypto: f64,
+        volume_hour_crypto: f64,
+        volume_day_crypto: f64,
+        volume_24_hour_crypto: f64,
+        total_volume_24_hour_crypto: f64,
+        last_volume_fiat: f64,
+        volume_hour_fiat: f64,
+        volume_day_fiat: f64,
+        volume_24_hour_fiat: f64,
+        total_volume_24_hour_fiat: f64,
+        change_day: f64,
+        change_pct_day: f64,
+        change_24_hour: f64,
+        change_pct_24_hour: f64,
+        supply: f64,
+        market_cap: f64,
+        open_hour: f64,
+        high_hour: f64,
+        low_hour: f64,
+        open_day: f64,
+        high_day: f64,
+        low_day: f64,
+        open_24_hour: f64,
+        high_24_hour: f64,
+        low_24_hour: f64
     }
 
 
@@ -643,11 +644,13 @@ mod tests {
         let mut timestamp: u64 = 0;
 
         for table in table_vec {
-            let query = format!("SELECT * FROM {} WHERE timestamp > {}", &table, index);
+            let query = format!("SELECT * FROM {} WHERE timestamp > ?", &table);
+            let index: i64 = index.clone().parse().expect("failed to convert index to i64");
+            let index = &[index];
 
             let mut stmt = storage.prepare(&query).expect("failed to prepare query");
 
-            let pair_iter = stmt.query_map(NO_PARAMS, |row| MiniCryptoFiat {
+            let pair_iter = stmt.query_map(index, |row| MiniCryptoFiat {
                 timestamp: row.get(0),
                 last_update: row.get(1),
                 price: row.get(2),
@@ -682,7 +685,7 @@ mod tests {
 
             for pair in pair_iter {
                 let pair = pair.expect("failed to convert data to struct");
-                timestamp = pair.timestamp.parse().expect("failed to convert string to u64");
+                timestamp = pair.timestamp as u64;
                 let key = table.clone();
                 frame.insert(key, pair);
             }
@@ -714,8 +717,9 @@ mod tests {
         }
 
         let (frame, timestamp) = get_many_fake_frames();
-        assert_eq!(frame["BTCandUSD"].timestamp, "1548205020");
-        assert_eq!(frame["MAIDandUSD"].price, "0.1181899205");
+//dont forget to update min/max and specific values for new testsets
+        assert_eq!(frame["BTCandUSD"].timestamp, 1548205020);
+        assert_eq!(frame["MAIDandUSD"].price, 0.1181899205);
     }
 
     #[test]
@@ -953,12 +957,12 @@ mod tests {
         let mut statement = storage.prepare("SELECT * FROM BTCandUSD;").expect("failed to prepare statement");
         let row_iter = statement.query_map(NO_PARAMS, |row| row.get(28)).expect("failed to map rows");
 
-        let mut result = "".to_string();
+        let mut result = 0.0;
         for row in row_iter {
             result = row.expect("unable to unwrap row from row_iter");
         }
 
-        if result == pair.low_24_hour.to_string() {            
+        if result == pair.low_24_hour {            
             fs::remove_file("test.db").expect("failed to remove file after match");
             Ok(())
         } else {
