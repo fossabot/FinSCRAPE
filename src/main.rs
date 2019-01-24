@@ -578,12 +578,12 @@ mod tests {
         let index: Box<Fn() -> String> = match File::open("test.txt") {
             //this was literally hitler to write, but its all mine from scratch
             Err(e) => Box::new(|| {
-//set new minimum timestamp
                 let mut file = File::create("test.txt").expect("failed to create test.txt");
                 file.write(&"1548299340".to_string().into_bytes()).expect("failed to write index to test.txt");
                 file.sync_all().expect("failed to sync file changes after writing test.txt");
                 "1548299340".to_string()
                 }),
+
             Ok(file) => Box::new(|| {
                 //it will be a good day for my program if this 12 byte buffer is exceeded by a unix timestamp
                 let mut index: [u8; 12] = [0; 12];
@@ -686,7 +686,6 @@ mod tests {
 
     #[test]
     fn get_many_fake_frames_returns_valid_data(){
-        //delete tmp file first
         let cargo = env::current_dir().expect("unable to find current dir");
         let tmp_path = cargo.to_str().expect("path is invalid unicode");
 
@@ -707,19 +706,21 @@ mod tests {
         }
 
         let (frame, timestamp) = get_many_fake_frames();
-//dont forget to update min/max and specific values for new testsets
         assert_eq!(frame["BTCandUSD"].timestamp, 1548299370);
         assert_eq!(frame["MAIDandUSD"].price, 0.1203174445);
     }
 
     #[test]
-    fn get_many_fake_frames_resets_after_299_frames() {
-        for iteration in 0..299 {
+    fn get_many_fake_frames_resets_after_all_frames() {
+        //this may need to be 505 because its upper bound is not inclusive
+        for iteration in 2..505 {
             let (frame, timestamp) = get_many_fake_frames();
         }
+
         let (frame, timestamp) = get_many_fake_frames();
-//set new minumum time stamp, second from first
-        if timestamp != 1548299340 {
+        //this should equal the second timestamp, because the get_many will never return the first
+        //as the SELECT is > timestamp (which defaults to the first)
+        if timestamp != 1548299370 {
             panic!("timestamp did not overflow correctly");
         }
     }
