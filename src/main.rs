@@ -34,6 +34,7 @@ use std::io::prelude::*;
 use std::{thread, time};
 use std::time::{Duration, Instant};
 use std::collections::{HashMap, HashSet};
+use std::collections::hash_map::Entry;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 
@@ -271,13 +272,19 @@ fn queue_frames(mut queue: HashMap<String, Vec<Vec<String>>>,
     //                                      "ETHandUSD": [writeVEC0, writeVEC1]
     //                                    )
     //with each subkey a hashmap (of different pairs) at a different timestamp
-    let mut queue: HashMap<String, Vec<Vec<String>>> = HashMap::new();
-
     for pair in frame.keys() {
-        let writeVec = arrange_vec(&frame[pair], &timestamp);
-        queue.insert(pair.to_string(), vec![writeVec]);
+        let mut timesteps = vec![];
+        queue.entry(pair.to_string()).or_insert(timesteps);
     }
 
+    for pair in queue.clone() {
+        let key = pair.0.to_string();
+        let writeVEC = arrange_vec(&frame[&key], &timestamp);
+        queue.entry(key).and_modify(|timesteps| {
+            timesteps.push(writeVEC);
+        });
+
+    }
     queue
 }
 
