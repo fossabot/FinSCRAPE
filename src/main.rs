@@ -660,6 +660,7 @@ mod tests {
         //even though it should be using a fresh file each time
         let index: String = index().trim().to_string();
         let index: String = index[..index.len()-2].to_string();
+        let mut index: i64 = index.clone().parse().expect("failed to convert index to i64");
 
         let table_vec = vec![
              "BCHandUSD".to_string(),
@@ -703,16 +704,15 @@ mod tests {
 
         for table in table_vec {
             let query = format!("SELECT * FROM {} WHERE timestamp > ?", &table);
-            let mut index: i64 = index.clone().parse().expect("failed to convert index to i64");
-            if index > 1548314430 {
+            if index > 1548314400 {
                 println!("index reset");
-                index = 1548299340;
+                index = 1548299310;
             }
-            let index = &[index];
+            let query_index = &[index];
 
             let mut stmt = storage.prepare(&query).expect("failed to prepare query");
 
-            let mut pair_iter = stmt.query_map(index, |row| MiniCryptoFiat {
+            let mut pair_iter = stmt.query_map(query_index, |row| MiniCryptoFiat {
                 timestamp: row.get(0),
                 last_update: row.get(1),
                 price: row.get(2),
@@ -751,8 +751,9 @@ mod tests {
         }
         let mut file = OpenOptions::new().create(false).write(true).append(false).open("test_timestamp.txt").expect("failed to open timestamp file for increment");
         //this is adding 60 to the timestamp all the sudden
-        let writestamp = timestamp + 30;
+        let writestamp = index + 30;
         println!("index after is: {}", &writestamp);
+        println!("timestamp after is: {}", &timestamp);
         let writestamp = writestamp.to_string();
         file.write(&writestamp.into_bytes()).expect("failed to write to file for increment");
         file.sync_all().expect("failed to sync file changes after writing test_timestamp.txt");
@@ -797,7 +798,7 @@ mod tests {
     fn get_many_fake_frames_resets_after_db_exhausted() -> Result<(), ()> {
         remove_test_timestamp();
         //this may need to be 505 because its upper bound is not inclusive
-        for iteration in 0..252 {
+        for iteration in 0..504 {
             let (frame, timestamp) = get_many_fake_frames();
         }
         println!("got past the values in the db");
