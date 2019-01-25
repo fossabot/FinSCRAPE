@@ -248,8 +248,8 @@ fn arrange_vec(pair: &CryptoFiat, timestamp: &u64) -> Vec<String> {
 
 //this may need to be generic in order to consume the test frames created from write_data
 
-fn queue_frames<T>(mut queue: HashMap<String, Vec<Vec<String>>>, 
-                frame: &HashMap<String, T>, 
+fn queue_frames(mut queue: HashMap<String, Vec<Vec<String>>>, 
+                frame: &HashMap<String, CryptoFiat>, 
                 timestamp: &u64
                 ) -> HashMap<String, Vec<Vec<String>>> {
     //this should read the agent conf file and set window_size and interval
@@ -548,6 +548,51 @@ mod tests {
 
 
     //utils
+    fn mini_struct_to_full_struct(mini_frame: HashMap<String, tests::MiniCryptoFiat>) -> HashMap<String, CryptoFiat> {
+        let mut frame = HashMap::new();
+        for key in mini_frame.keys() {
+            let pair = CryptoFiat {
+                class: "MISSING".to_string(),
+                market: "MISSING".to_string(),
+                crypto_symbol: "MISSING".to_string(),
+                fiat_symbol:"MISSING".to_string(),
+                flags: "MISSING".to_string(),
+                price: mini_frame[key].price,
+                last_update: mini_frame[key].last_update,
+                last_volume_crypto: mini_frame[key].last_volume_crypto,
+                last_volume_fiat: mini_frame[key].last_volume_fiat,
+                LASTTRADEID: 424242,
+                volume_day_crypto: mini_frame[key].volume_day_crypto,
+                volume_day_fiat: mini_frame[key].volume_day_fiat,
+                volume_24_hour_crypto: mini_frame[key].volume_24_hour_crypto,
+                volume_24_hour_fiat: mini_frame[key].volume_24_hour_fiat,
+                open_day: mini_frame[key].open_day,
+                high_day: mini_frame[key].high_day,
+                low_day: mini_frame[key].low_day,
+                open_24_hour: mini_frame[key].open_24_hour,
+                high_24_hour: mini_frame[key].high_24_hour,
+                low_24_hour: mini_frame[key].low_24_hour,
+                last_market: mini_frame[key].last_market.to_owned(),
+                volume_hour_crypto: mini_frame[key].volume_hour_crypto,
+                volume_hour_fiat: mini_frame[key].volume_hour_fiat,
+                open_hour: mini_frame[key].open_hour,
+                high_hour: mini_frame[key].high_hour,
+                low_hour: mini_frame[key].low_hour,
+                change_24_hour: mini_frame[key].change_24_hour,
+                change_pct_24_hour: mini_frame[key].change_pct_24_hour,
+                change_day: mini_frame[key].change_day,
+                change_pct_day: mini_frame[key].change_pct_day,
+                supply: mini_frame[key].supply,
+                market_cap: mini_frame[key].market_cap,
+                total_volume_24_hour_crypto: mini_frame[key].total_volume_24_hour_crypto,
+                total_volume_24_hour_fiat: mini_frame[key].total_volume_24_hour_fiat,
+                IMAGEURL: "MISSING".to_string()
+            };
+            frame.insert(key.to_string(), pair);
+        }
+        frame
+    }
+
     fn get_one_fake_frame()-> (HashMap<String, CryptoFiat>, u64) {
         let json = fs::read_to_string("response_crypto.txt")
         .expect("Something went wrong reading the file");
@@ -1073,7 +1118,8 @@ mod tests {
     }
 
     fn queue_frames_returns_all_keys() -> Result <(), ()> {
-        let (frame, timestamp) = get_many_fake_frames();
+        let (mini_frame, timestamp) = get_many_fake_frames();
+        let frame = mini_struct_to_full_struct(mini_frame);
         let mut queue = HashMap::new();
         queue = queue_frames(queue, &frame, &timestamp);
 
@@ -1126,7 +1172,8 @@ mod tests {
     }
 
     fn queue_frames_returns_valid_data() -> Result <(), ()> {
-        let (frame, timestamp) = get_many_fake_frames();
+        let (mini_frame, timestamp) = get_many_fake_frames();
+        let frame = mini_struct_to_full_struct(mini_frame);
         let mut queue = HashMap::new();
         queue = queue_frames(queue, &frame, &timestamp);
         let thisBOX = &queue["BTCandUSD"][0][0];
