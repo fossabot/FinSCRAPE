@@ -818,8 +818,7 @@ mod tests {
 
     #[test]
     fn get_many_fake_util_group() {
-        //these create race condition, so they must be run sequentially in here
-        //or with -- --test-threads=1, the mutable that clashes is test_timestamp.txt
+        //it seems these do not run sequentially in any case, must be run with -- --test-threads=1 to pass
         get_many_fake_frames_returns_valid_data().expect("get_many_fake returned invalid data");
         get_many_fake_frames_resets_after_db_exhausted().expect("get_many_fake did not reset after db was exhausted");
 
