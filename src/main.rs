@@ -699,11 +699,12 @@ mod tests {
         let storage = Connection::open("multi.db").expect("failed to open multi.db");
         let mut frame = HashMap::new();
         let mut timestamp: u64 = 0;
+        println!("index before is: {}", &index);
 
         for table in table_vec {
             let query = format!("SELECT * FROM {} WHERE timestamp > ?", &table);
             let mut index: i64 = index.clone().parse().expect("failed to convert index to i64");
-            if index == 1548314460 {
+            if index > 1548314430 {
                 println!("index reset");
                 index = 1548299340;
             }
@@ -749,7 +750,9 @@ mod tests {
             frame.insert(table, single);
         }
         let mut file = OpenOptions::new().create(false).write(true).append(false).open("test_timestamp.txt").expect("failed to open timestamp file for increment");
+        //this is adding 60 to the timestamp all the sudden
         let writestamp = timestamp + 30;
+        println!("index after is: {}", &writestamp);
         let writestamp = writestamp.to_string();
         file.write(&writestamp.into_bytes()).expect("failed to write to file for increment");
         file.sync_all().expect("failed to sync file changes after writing test_timestamp.txt");
@@ -822,16 +825,19 @@ mod tests {
     }
 
     //unit tests
+    /*
     #[test]
     fn set_disk_group(){
         panic!("not implemented");
     }
+    */
 
-
+    /*
     #[test]
     fn notify_group(){
         panic!("not implemented");
     }
+    */
 
 
     fn get_data_sleeps_till_30() -> Result<(), ()>{
@@ -1229,35 +1235,41 @@ mod tests {
         queue_frames_returns_all_keys().expect("queue_frames did not return the expected keys");
         queue_frames_returns_valid_data().expect("queue_frames did not return a parsable timestamp at [0][0] position");
         queue_frames_returns_more_than_one_vec().expect("queue_frames did not return multiple timesteps");
+        queue_frames_returns_valid_data().expect("queue_frames did not return a valid vec of vecs");
     }
 
-
+    /*
     #[test]
     fn set_labels_group(){
         panic!("not implemented");
     }
+    */
 
-
+    /*
     #[test]
     fn measure_group(){
         panic!("not implemented");
     }
+    */
 
-
+    /*
     #[test]
     fn inform_agent_group(){
         panic!("not implemented");
     }
+    */
 
-
+    /*
     #[test]
     fn get_agent_metrics_group(){
         panic!("not implemented");
     }
+    */
 
-
+    /*
     #[test]
     fn get_agent_config_group(){
         panic!("not implemented");
     }
+    */
 }
