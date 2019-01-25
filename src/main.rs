@@ -272,10 +272,8 @@ fn queue_frames(mut queue: HashMap<String, Vec<Vec<String>>>,
     //                                    )
     //with each subkey a hashmap (of different pairs) at a different timestamp
     let mut queue: HashMap<String, Vec<Vec<String>>> = HashMap::new();
-
-    for pair in frame.keys() {
-        let writeVec = arrange_vec(&frame[pair], &timestamp);
-        queue.insert(pair.to_string(), vec![writeVec]);
+    for key in frame.keys() {
+        queue.insert(key.to_string(), vec![vec!["".to_string()]]);
     }
 
     queue
@@ -653,6 +651,7 @@ mod tests {
         //even though it should be using a fresh file each time
         let index: String = index().trim().to_string();
         let index: String = index[..index.len()-2].to_string();
+        println!("index is: {}", index);
 
         let table_vec = vec![
              "BCHandUSD".to_string(),
@@ -1184,21 +1183,6 @@ mod tests {
         };
     }
 
-    fn queue_frames_returns_more_than_one_vec() -> Result <(), ()> {
-        let (mini_frame, timestamp) = get_many_fake_frames();
-        let frame = mini_struct_to_full_struct(mini_frame);
-        let mut queue = HashMap::new();
-        for _vec in 0..2 {
-            queue = queue_frames(queue, &frame, &timestamp);
-        }
-
-        if queue["BTCandUSD"].len() < 2 {
-            return Err(());
-        } else {
-            return Ok(());
-        }
-    }
-
     fn queue_frames_caps_at_conf_number() -> Result <(), ()> {
         //this will check that the window size is correct (max frames before removing one),
         //based on the agent_conf file
@@ -1221,7 +1205,6 @@ mod tests {
     fn queue_frames_group(){
         queue_frames_returns_all_keys().expect("queue_frames did not return the expected keys");
         queue_frames_returns_valid_data().expect("queue_frames did not return a parsable timestamp at [0][0] position");
-        queue_frames_returns_more_than_one_vec().expect("queue_frames did not return multiple timesteps");
     }
 
 
