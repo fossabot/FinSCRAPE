@@ -819,6 +819,8 @@ mod tests {
     #[test]
     fn get_many_fake_util_group() {
         //it seems these do not run sequentially in any case, must be run with -- --test-threads=1 to pass
+        //otherwise get_many reset returns correct_timestamp + 30 fairly consistently
+        //as the error is consistent, I believe it may be something I wrote wrong rather than a race
         get_many_fake_frames_returns_valid_data().expect("get_many_fake returned invalid data");
         get_many_fake_frames_resets_after_db_exhausted().expect("get_many_fake did not reset after db was exhausted");
 
@@ -1212,7 +1214,7 @@ mod tests {
         }
     }
 
-    fn queue_frames_caps_at_conf_number() -> Result <(), ()> {
+    fn queue_frames_caps_at_conf_window() -> Result <(), ()> {
         //this will check that the window size is correct (max frames before removing one),
         //based on the agent_conf file
 
