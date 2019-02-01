@@ -1,4 +1,5 @@
 //this will be used to parse json into structs
+// vscode-fold=1
 #[macro_use]
 extern crate serde_derive;
 extern crate serde_json;
@@ -64,11 +65,18 @@ fn set_disk(mut master: &DB, mut metrics: &DB) {
 }
 */
 
-/* 8th
-fn notify(reason: &Notify) {
+//this is pretest
+fn notify(notification: &Notify) {
     //this will send emails or other correspondence to the operator
+    match notification {
+        Notify::ChangedDB(info) => println!("the DB has been changed to: {}", info),
+        Notify::FirstWrite(timestamp) => println!("the new DB has been written to at: {}", timestamp),
+        Notify::LowStorage(info) => println!("the storage is low on this volume: {}", info),
+        Notify::ChangedConfig(config) => println!("the config has successfully been changed to: {}", config),
+        Notify::InvalidConfig(config) => println!("reverting to previous config, new config failed to parse: {}", config)
+    }
+
 }
-*/
 
 
 fn get_data() -> (HashMap<String, CryptoFiat>, u64) {
@@ -212,8 +220,7 @@ fn write_data(frame: &HashMap<String, CryptoFiat>, timestamp: &u64, master: &DB)
     storage.close().expect("failed to close the db");
 }
 
-fn arrange_vec(pair: &CryptoFiat, timestamp: &u64) -> Vec<String> {
-    
+fn arrange_vec(pair: &CryptoFiat, timestamp: &u64) -> Vec<String> {    
     let mut writeVEC: Vec<String> = vec![];
     writeVEC.push(timestamp.to_string());
     writeVEC.push(pair.last_update.to_string());
@@ -246,8 +253,6 @@ fn arrange_vec(pair: &CryptoFiat, timestamp: &u64) -> Vec<String> {
     writeVEC.push(pair.low_24_hour.to_string());
     writeVEC
 }
-
-//this may need to be generic in order to consume the test frames created from write_data
 
 fn queue_frames(mut queue: HashMap<String, Vec<Vec<String>>>, 
                 frame: &HashMap<String, CryptoFiat>, 
@@ -326,16 +331,22 @@ fn get_agent_metrics() {
 */
 
 enum Notify {
-    ChangedDB,
-    FirstWrite,
-    LowStorage,
-    ChangedConfig
+    //provide path of new db and volume info
+    ChangedDB(String),
+    //provide timestamp of first new write
+    FirstWrite(String),
+    //provide volume info and remanining storage
+    //as well as previous frame size
+    LowStorage(String),
+    //provide new params set
+    ChangedConfig(String),
+    //provide field names and values that did not parse properly
+    InvalidConfig(String)
 }
 
 struct DB {
     path: Option<String>,
     storage_device: Option<String>
-
 }
 
 fn default_string() -> String {
@@ -459,6 +470,14 @@ struct CryptoFiat {
     #[serde(default="default_string")]
     IMAGEURL: String
 
+}
+
+#[derive(Serialize, Deserialize)]
+struct Configuration {
+    pairs: Vec<String>,
+    window: i64,
+    interval: i64,
+    path: String
 }
 
 fn main() {
@@ -602,6 +621,27 @@ mod tests {
         frame
     }
 
+    fn remove_test_timestamp() {
+        let cargo = env::current_dir().expect("unable to find current dir");
+        let tmp_path = cargo.to_str().expect("path is invalid unicode");
+
+        let filesInSrc = fs::read_dir(&tmp_path).expect("failed to read contents of download directory");
+
+        for fileNAME in filesInSrc {
+            let entry = fileNAME.expect("DirEntry returned 0");
+            let fileNAME: String = entry.file_name()
+                                //this converts the OSstr into a string slice
+                                .into_string()
+                                .expect("the file_name could not be converted to a string")
+                                //this converts the string slice into an owned string
+                                .to_owned().clone();
+
+            if fileNAME.contains("test_timestamp.txt") {
+                fs::remove_file(&entry.path()).expect("failed to remove file after match");
+            }
+        }
+    }
+
     fn get_one_fake_frame()-> (HashMap<String, CryptoFiat>, u64) {
         let json = fs::read_to_string("response_crypto.txt")
         .expect("Something went wrong reading the file");
@@ -700,7 +740,6 @@ mod tests {
         let storage = Connection::open("multi.db").expect("failed to open multi.db");
         let mut frame = HashMap::new();
         let mut timestamp: u64 = 0;
-        println!("index before is: {}", &index);
 
         for table in table_vec {
             let query = format!("SELECT * FROM {} WHERE timestamp > ?", &table);
@@ -752,34 +791,11 @@ mod tests {
         let mut file = OpenOptions::new().create(false).write(true).append(false).open("test_timestamp.txt").expect("failed to open timestamp file for increment");
         //this is adding 60 to the timestamp all the sudden
         let writestamp = index + 30;
-        println!("index after is: {}", &writestamp);
-        println!("timestamp after is: {}", &timestamp);
         let writestamp = writestamp.to_string();
         file.write(&writestamp.into_bytes()).expect("failed to write to file for increment");
         file.sync_all().expect("failed to sync file changes after writing test_timestamp.txt");
         return (frame, timestamp);
 
-    }
-
-    fn remove_test_timestamp() {
-        let cargo = env::current_dir().expect("unable to find current dir");
-        let tmp_path = cargo.to_str().expect("path is invalid unicode");
-
-        let filesInSrc = fs::read_dir(&tmp_path).expect("failed to read contents of download directory");
-
-        for fileNAME in filesInSrc {
-            let entry = fileNAME.expect("DirEntry returned 0");
-            let fileNAME: String = entry.file_name()
-                                //this converts the OSstr into a string slice
-                                .into_string()
-                                .expect("the file_name could not be converted to a string")
-                                //this converts the string slice into an owned string
-                                .to_owned().clone();
-
-            if fileNAME.contains("test_timestamp.txt") {
-                fs::remove_file(&entry.path()).expect("failed to remove file after match");
-            }
-        }
     }
 
     fn get_many_fake_frames_returns_valid_data() -> Result<(), ()>{
@@ -1214,12 +1230,40 @@ mod tests {
         }
     }
 
+    fn queue_frames_survives_invalid_conf() -> Result<(), ()> {
+        //use previous conf if current is invalid,
+        //should set a previous file each time a valid conf is accepted
+        // valid conf:
+        /*
+        {
+            "pairs": ["BTCandUSD", "ETHandUSD"],
+            "window": 10,
+            "interval": 30,
+            "path": "agent_queues/"
+        }
+        */
+        Err(())
+    }
+
+    fn queue_frames_notifies_invalid_conf_params() -> Result<(), ()> {
+        Err(())
+    }
+
+    fn queue_frames_returns_pairs_specified_in_conf() -> Result <(), () > {
+        /*
+        if pairs.len() > performance_number of pairs then pairs is invalid
+        */
+        Err(())
+    }
+
     fn queue_frames_caps_at_conf_window() -> Result <(), ()> {
         //this will check that the window size is correct (max frames before removing one),
         //based on the agent_conf file
 
         //create the conf file with x window size and 30 seconds duration
         //check if queue wraps at x quantity of frames per key
+
+        //do for several values of x
         Err(())
     }
 
@@ -1237,7 +1281,6 @@ mod tests {
         queue_frames_returns_all_keys().expect("queue_frames did not return the expected keys");
         queue_frames_returns_valid_data().expect("queue_frames did not return a parsable timestamp at [0][0] position");
         queue_frames_returns_more_than_one_vec().expect("queue_frames did not return multiple timesteps");
-        queue_frames_returns_valid_data().expect("queue_frames did not return a valid vec of vecs");
     }
 
     /*
