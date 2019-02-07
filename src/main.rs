@@ -782,7 +782,7 @@ mod tests {
             Err(_) => (),
             Ok(_) => fs::remove_file("test_timestamp.txt").expect("failed to remove file after open succeeded")
         };
-        
+
         let (frame, timestamp) = get_many_fake_frames();
         if frame["BTCandUSD"].timestamp != 1548299370 {
             match File::open("test_timestamp.txt") {
@@ -1210,7 +1210,7 @@ mod tests {
         queue_frames_returns_more_than_one_vec().expect("queue_frames did not return multiple timesteps");
     }
 
-    fn queue_frames_survives_no_conf() -> Result<(), ()> {
+    fn queue_frames_creates_conf_when_none() -> Result<(), ()> {
         //use previous conf if current is invalid,
         //should set a previous file each time a valid conf is accepted
         // valid conf:
@@ -1222,24 +1222,24 @@ mod tests {
             "path": String<Path>
         }
 
-        130 chars
-        stringified:    
-            "{\n    \"pairs\": Vec<String<CRYPTOandFIAT>>,\n    \"window\": i64<0..Any>,\n    \"interval\": i64<30..Any*30>,\n    \"path\": String<Path>\n}\n"
-
-        ensure no file is present
-        run function, file with correct file name
-        and explanitive comment should be present
-
-        comment should be the above example for now 
-
-        program should go to hardwired default of 10/30
         */
         match File::open("agent_conf.txt") {
             Err(_) => (),
             Ok(_) => fs::remove_file("agent_conf.txt").expect("failed to remove file after open succeeded")
         };
-        
-        Err(())
+
+        let (mini_frame, timestamp) = get_many_fake_frames();
+        let frame = mini_struct_to_full_struct(mini_frame);
+        let mut _queue = HashMap::new();
+        _queue = queue_frames(_queue, &frame, &timestamp);
+
+        match File::open("agent_conf.txt") {
+            Err(_) => return Err(()),
+            Ok(_) => ()
+        };
+
+        //no comments allowed in json so we are going to skip the info header
+        return Ok(())
     }
 
     fn queue_frames_survives_invalid_conf() -> Result<(), ()> {
@@ -1293,7 +1293,7 @@ mod tests {
 
     #[test]
     fn queue_frames_conf_group(){
-        queue_frames_survives_invalid_conf().expect("queue_frames did not survive the invalid conf");
+        queue_frames_creates_conf_when_none().expect("queue_frames failed to create a blank conf file");
         //what is this test, does it take user input???
         //queue_frames_notifies_invalid_conf_params().expect("queue_frames failed to notify");
     }
