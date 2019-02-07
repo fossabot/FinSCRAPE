@@ -1250,6 +1250,32 @@ mod tests {
         return Ok(())
     }
 
+    fn queue_frames_survives_blank_conf() -> Result<(), ()> {
+        match File::open("agent_conf.txt") {
+            Err(_) => (),
+            Ok(_) => fs::remove_file("agent_conf.txt").expect("failed to remove file after open succeeded")
+        };
+
+        let (mini_frame, timestamp) = get_many_fake_frames();
+        let frame = mini_struct_to_full_struct(mini_frame);
+        let mut queue = HashMap::new();
+        queue = queue_frames(queue, &frame, &timestamp);
+
+        if queue["BTCandUSD"].len() != 10 {
+            println!("the default queue length was not 10");
+            return Err(())
+        }
+        let timestamp0: i64 = queue["BTCandUSD"][0][0].parse().expect("failed to parse timestamp0");
+        let timestamp1: i64 = queue["BTCandUSD"][1][0].parse().expect("failed to parse timestamp1");
+
+        if timestamp1 - timestamp0 != 60 {
+            println!("the default queue interval was not 60 seconds apart");
+            return Err(())
+        }
+
+        Ok(())
+    }
+
     fn queue_frames_survives_invalid_conf() -> Result<(), ()> {
         /*
             window should be greater than 0 and present
@@ -1262,6 +1288,8 @@ mod tests {
             create a file with invalid types,
             create a file with 0 len types,
             clean up file and any directories created
+
+            should default to 10/30
 
         */
         Err(())
@@ -1302,6 +1330,7 @@ mod tests {
     #[test]
     fn queue_frames_conf_group(){
         queue_frames_creates_conf_when_none().expect("queue_frames failed to create a blank conf file");
+        queue_frames_survives_blank_conf().expect("queue_frames did not use defaults when conf was blank");
         //what is this test, does it take user input???
         //queue_frames_notifies_invalid_conf_params().expect("queue_frames failed to notify");
     }
