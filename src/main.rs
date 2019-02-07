@@ -277,6 +277,14 @@ fn queue_frames(mut queue: HashMap<String, Vec<Vec<String>>>,
     //                                      "ETHandUSD": [writeVEC0, writeVEC1]
     //                                    )
     //with each subkey a hashmap (of different pairs) at a different timestamp
+    match File::open("agent_conf.txt") {
+        Err(_) => {
+            let mut file = File::create("agent_conf.txt").expect("failed to create conf file in queue_frames");
+            file.sync_all().expect("failed to sync changes after creating conf in queue_frames");
+            },
+        Ok(_) => ()
+    };
+
     for pair in frame.keys() {
         let mut timesteps = vec![];
         queue.entry(pair.to_string()).or_insert(timesteps);
