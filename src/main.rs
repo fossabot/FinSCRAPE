@@ -621,13 +621,6 @@ mod tests {
         frame
     }
 
-    fn remove_test_timestamp() {
-        match File::open("test_timestamp.txt") {
-            Err(_) => (),
-            Ok(_) => fs::remove_file("test_timestamp.txt").expect("failed to remove file after open succeeded")
-        };
-    }
-
     fn get_one_fake_frame()-> (HashMap<String, CryptoFiat>, u64) {
         let json = fs::read_to_string("response_crypto.txt")
         .expect("Something went wrong reading the file");
@@ -785,20 +778,33 @@ mod tests {
     }
 
     fn get_many_fake_frames_returns_valid_data() -> Result<(), ()>{
-        remove_test_timestamp();
+        match File::open("test_timestamp.txt") {
+            Err(_) => (),
+            Ok(_) => fs::remove_file("test_timestamp.txt").expect("failed to remove file after open succeeded")
+        };
+        
         let (frame, timestamp) = get_many_fake_frames();
         if frame["BTCandUSD"].timestamp != 1548299370 {
-            remove_test_timestamp();
+            match File::open("test_timestamp.txt") {
+                Err(_) => (),
+                Ok(_) => fs::remove_file("test_timestamp.txt").expect("failed to remove file after open succeeded")
+            };
             return Err(());
         } else if frame["MAIDandUSD"].price != 0.1203174445 {
-            remove_test_timestamp();
+            match File::open("test_timestamp.txt") {
+                Err(_) => (),
+                Ok(_) => fs::remove_file("test_timestamp.txt").expect("failed to remove file after open succeeded")
+            };
             return Err(());
         }
         Ok(())
     }
 
     fn get_many_fake_frames_resets_after_db_exhausted() -> Result<(), ()> {
-        remove_test_timestamp();
+        match File::open("test_timestamp.txt") {
+            Err(_) => (),
+            Ok(_) => fs::remove_file("test_timestamp.txt").expect("failed to remove file after open succeeded")
+        };
         //this may need to be 505 because its upper bound is not inclusive
         for iteration in 0..504 {
             let (frame, timestamp) = get_many_fake_frames();
@@ -809,11 +815,17 @@ mod tests {
         //as the SELECT is > timestamp (which defaults to the first)
     
         if timestamp != 1548299370 {
-            remove_test_timestamp();
+            match File::open("test_timestamp.txt") {
+                Err(_) => (),
+                Ok(_) => fs::remove_file("test_timestamp.txt").expect("failed to remove file after open succeeded")
+            };
             return Err(());
         }
 
-        remove_test_timestamp();
+        match File::open("test_timestamp.txt") {
+            Err(_) => (),
+            Ok(_) => fs::remove_file("test_timestamp.txt").expect("failed to remove file after open succeeded")
+        };
         Ok(())
 
     }
