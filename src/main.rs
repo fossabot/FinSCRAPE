@@ -622,24 +622,10 @@ mod tests {
     }
 
     fn remove_test_timestamp() {
-        let cargo = env::current_dir().expect("unable to find current dir");
-        let tmp_path = cargo.to_str().expect("path is invalid unicode");
-
-        let filesInSrc = fs::read_dir(&tmp_path).expect("failed to read contents of download directory");
-
-        for fileNAME in filesInSrc {
-            let entry = fileNAME.expect("DirEntry returned 0");
-            let fileNAME: String = entry.file_name()
-                                //this converts the OSstr into a string slice
-                                .into_string()
-                                .expect("the file_name could not be converted to a string")
-                                //this converts the string slice into an owned string
-                                .to_owned().clone();
-
-            if fileNAME.contains("test_timestamp.txt") {
-                fs::remove_file(&entry.path()).expect("failed to remove file after match");
-            }
-        }
+        match File::open("test_timestamp.txt") {
+            Err(_) => (),
+            Ok(_) => fs::remove_file("test_timestamp.txt").expect("failed to remove file after open succeeded")
+        };
     }
 
     fn get_one_fake_frame()-> (HashMap<String, CryptoFiat>, u64) {
@@ -833,7 +819,7 @@ mod tests {
     }
 
     #[test]
-    fn get_many_fake_util_group() {
+    fn get_many_fake_frames_util_group() {
         //it seems these do not run sequentially in any case, must be run with -- --test-threads=1 to pass
         //otherwise get_many reset returns correct_timestamp + 30 fairly consistently
         //as the error is consistent, I believe it may be something I wrote wrong rather than a race
@@ -946,47 +932,20 @@ mod tests {
         };
 
         //get paths
-        let cargo = env::current_dir().expect("unable to find current dir");
-        let db_path = cargo.to_str().expect("path is invalid unicode");
-
-        let filesInSrc = fs::read_dir(&db_path).expect("failed to read contents of download directory");
-
-        for fileNAME in filesInSrc {
-            let entry = fileNAME.expect("DirEntry returned 0");
-            let fileNAME: String = entry.file_name()
-                                //this converts the OSstr into a string slice
-                                .into_string()
-                                .expect("the file_name could not be converted to a string")
-                                //this converts the string slice into an owned string
-                                .to_owned().clone();
-
-            if fileNAME.contains("test.db") {
-                fs::remove_file(&entry.path()).expect("failed to remove file after match");
-            }
-        }
+        match File::open("test.db") {
+            Err(_) => (),
+            Ok(_) => fs::remove_file("test.db").expect("failed to remove file after open succeeded")
+        };
 
         let (frame, timestamp) = get_one_fake_frame();
         write_data(&frame, &timestamp, &master);
 
-        let filesInSrc = fs::read_dir(&db_path).expect("failed to read contents of download directory");
+        match File::open("test.db") {
+            Err(_) => return Err(()),
+            Ok(_) => fs::remove_file("test.db").expect("failed to remove file after open succeeded")
+        };
 
-        for fileNAME in filesInSrc {
-            let entry = fileNAME.expect("DirEntry returned 0");
-            let fileNAME: String = entry.file_name()
-                                //this converts the OSstr into a string slice
-                                .into_string()
-                                .expect("the file_name could not be converted to a string")
-                                //this converts the string slice into an owned string
-                                .to_owned().clone();
-
-            if fileNAME.contains("test.db"){                
-                fs::remove_file(&entry.path()).expect("failed to remove file after match");
-                return Ok(());
-            }
-        }
-
-
-        return Err(());
+        return Ok(());
     }
 
     fn write_data_adds_valid_tables_to_db() -> Result <(), ()> {
@@ -1221,6 +1180,7 @@ mod tests {
         let mut queue = HashMap::new();
         for _vec in 0..2 {
             queue = queue_frames(queue, &frame, &timestamp);
+            println!("one frame")
         }
 
         if queue["BTCandUSD"].len() < 2 {
@@ -1230,20 +1190,63 @@ mod tests {
         }
     }
 
-    fn queue_frames_survives_invalid_conf() -> Result<(), ()> {
+
+    #[test]
+    fn queue_frames_group(){
+        queue_frames_returns_all_keys().expect("queue_frames did not return the expected keys");
+        queue_frames_returns_valid_data().expect("queue_frames did not return a parsable timestamp at [0][0] position");
+        queue_frames_returns_more_than_one_vec().expect("queue_frames did not return multiple timesteps");
+    }
+
+    fn queue_frames_survives_no_conf() -> Result<(), ()> {
         //use previous conf if current is invalid,
         //should set a previous file each time a valid conf is accepted
         // valid conf:
         /*
         {
-            "pairs": ["BTCandUSD", "ETHandUSD"],
-            "window": 10,
-            "interval": 30,
-            "path": "agent_queues/"
+            "pairs": Vec<String<CRYPTOandFIAT>>,
+            "window": i64<0..Any>,
+            "interval": i64<30..Any*30>,
+            "path": String<Path>
         }
+
+        130 chars
+        stringified:    
+            "{\n    \"pairs\": Vec<String<CRYPTOandFIAT>>,\n    \"window\": i64<0..Any>,\n    \"interval\": i64<30..Any*30>,\n    \"path\": String<Path>\n}\n"
+
+        ensure no file is present
+        run function, file with correct file name
+        and explanitive comment should be present
+
+        comment should be the above example for now 
+
+        program should go to hardwired default of 10/30
+        */
+        match File::open("agent_conf.txt") {
+            Err(_) => (),
+            Ok(_) => fs::remove_file("agent_conf.txt").expect("failed to remove file after open succeeded")
+        };
+        
+        Err(())
+    }
+
+    fn queue_frames_survives_invalid_conf() -> Result<(), ()> {
+        /*
+            window should be greater than 0 and present
+            interval should be greater than 30, mulitple of 30 and present
+            path should be present and create if not valid
+            paires should be present, and len greater than 0
+            by deserializing all typing errors should be tested and results handled to survive properly
+
+            this test should create a file with no data,
+            create a file with invalid types,
+            create a file with 0 len types,
+            clean up file and any directories created
+
         */
         Err(())
     }
+
 
     fn queue_frames_notifies_invalid_conf_params() -> Result<(), ()> {
         Err(())
@@ -1277,10 +1280,10 @@ mod tests {
     }
 
     #[test]
-    fn queue_frames_group(){
-        queue_frames_returns_all_keys().expect("queue_frames did not return the expected keys");
-        queue_frames_returns_valid_data().expect("queue_frames did not return a parsable timestamp at [0][0] position");
-        queue_frames_returns_more_than_one_vec().expect("queue_frames did not return multiple timesteps");
+    fn queue_frames_conf_group(){
+        queue_frames_survives_invalid_conf().expect("queue_frames did not survive the invalid conf");
+        //what is this test, does it take user input???
+        //queue_frames_notifies_invalid_conf_params().expect("queue_frames failed to notify");
     }
 
     /*

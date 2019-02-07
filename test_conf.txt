@@ -1,0 +1,6 @@
+{
+    "pairs": Vec<String<CRYPTOandFIAT>>,
+    "window": i64<0..Any>,
+    "interval": i64<30..Any*30>,
+    "path": String<Path>
+}
