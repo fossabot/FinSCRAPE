@@ -307,6 +307,7 @@ fn queue_frames(mut queue: HashMap<String, Vec<Vec<String>>>,
     //then remove one if it is
 
     //not sure how to check if each is Interval seconds more than the last
+    //might be able to use retain on timesteps with |&step| step % 60 == 0 as its arg 
 
     //this inserts a key and a blank timestep vec if there are none
     for pair in frame.keys() {
@@ -317,18 +318,30 @@ fn queue_frames(mut queue: HashMap<String, Vec<Vec<String>>>,
     //this does the add/remove mutation business
     for pair in queue.clone() {
         let key = pair.0.to_string();
+
+        //remove all entries which are not aligned with the configured interval
+        queue.entry(key.clone()).and_modify(|timesteps| {
+            timesteps.retain(|step| step[0].parse::<i64>().expect("failed to parse timestamp during retain") % agent_conf.interval == 0);
+        });
+
+        //front pop all entries that are over the configured window size
         if queue[&key].len() as i64 >= agent_conf.window {
             let difference = queue[&key].len() as i64 - agent_conf.window + 1;
             let range = std::ops::Range{start: 0, end: difference};
             for _each in range {
-                let remove_key = key.clone();
-                queue.entry(remove_key).and_modify(|timesteps|{
+                queue.entry(key.clone()).and_modify(|timesteps|{
                     timesteps.remove(0);
                 });
             }
         }
+
+        //add the new timestep
         let writeVEC = arrange_vec(&frame[&key], &timestamp);
         queue.entry(key).and_modify(|timesteps| {
+            /*
+            if writeVEC[0].parse::<i64>().expect("failed to parse timestamp during push") % agent_conf.interval == 0 {
+            }
+            */
             timesteps.push(writeVEC);
         });
     }
@@ -695,7 +708,7 @@ mod tests {
            }
     }
 
-    //can probably use this in all tests as the specific data is not tested for
+    //when using this in a loop make sure to remove test_timestamp.txt before the loop
     fn get_many_fake_frames() -> (HashMap<String, tests::MiniCryptoFiat>, u64) {
         let index: Box<Fn() -> String> = match File::open("test_timestamp.txt") {
             //this was literally hitler to write, but its all mine from scratch
@@ -1230,12 +1243,17 @@ mod tests {
     }
 
     fn queue_frames_returns_more_than_one_vec() -> Result <(), ()> {
-        let (mini_frame, timestamp) = get_many_fake_frames();
-        let frame = mini_struct_to_full_struct(mini_frame);
+        match File::open("test_timestamp.txt") {
+            Err(_) => (),
+            Ok(_) => fs::remove_file("test_timestamp.txt").expect("failed to remove file after open succeeded")
+        };
         let mut queue = HashMap::new();
-        for _vec in 0..2 {
+
+        //this should be three because of the default interval of 60s (one 30s frame is skipped)
+        for _vec in 0..3 {
+            let (mini_frame, timestamp) = get_many_fake_frames();
+            let frame = mini_struct_to_full_struct(mini_frame);
             queue = queue_frames(queue, &frame, &timestamp);
-            println!("one frame")
         }
 
         if queue["BTCandUSD"].len() < 2 {
@@ -1291,25 +1309,26 @@ mod tests {
             Ok(_) => fs::remove_file("agent_conf.txt").expect("failed to remove file after open succeeded")
         };
 
+        match File::open("test_timestamp.txt") {
+            Err(_) => (),
+            Ok(_) => fs::remove_file("test_timestamp.txt").expect("failed to remove file after open succeeded")
+        };
+
+
         let mut queue = HashMap::new();
 
-        for _each in 0..20 {
+        for _each in 0..31 {
             let (mini_frame, timestamp) = get_many_fake_frames();
             let frame = mini_struct_to_full_struct(mini_frame);
             queue = queue_frames(queue, &frame, &timestamp);
-            let mut timesteps = vec![];
-            for item in queue["BTCandUSD"].clone(){
-                timesteps.push(item[0].clone());
-            }
-            println!("{:?}", timesteps);
         }
 
         if queue["BTCandUSD"].len() != 10 {
             println!("the default queue length was not 10");
             return Err(())
         }
-        let timestamp0: i64 = queue["BTCandUSD"][0][0].parse().expect("failed to parse timestamp0");
-        let timestamp1: i64 = queue["BTCandUSD"][1][0].parse().expect("failed to parse timestamp1");
+        let timestamp0: i64 = queue["BTCandUSD"][8][0].parse().expect("failed to parse timestamp0");
+        let timestamp1: i64 = queue["BTCandUSD"][9][0].parse().expect("failed to parse timestamp1");
 
         if timestamp1 - timestamp0 != 60 {
             println!("the default queue interval was not 60 seconds apart");
