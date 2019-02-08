@@ -314,7 +314,7 @@ fn queue_frames(mut queue: HashMap<String, Vec<Vec<String>>>,
         let mut timesteps = vec![];
         queue.entry(pair.to_string()).or_insert(timesteps);
     }
-
+    
     //this does the add/remove mutation business
     for pair in queue.clone() {
         let key = pair.0.to_string();
@@ -324,19 +324,16 @@ fn queue_frames(mut queue: HashMap<String, Vec<Vec<String>>>,
             timesteps.retain(|step| step[0].parse::<i64>().expect("failed to parse timestamp during retain") % agent_conf.interval == 0);
         });
 
-        let writeVEC = arrange_vec(&frame[&key], &timestamp);
-
         //this checks to see if there are more timesteps than requested in the conf
         if queue[&key].len() as i64 >= agent_conf.window {
             let mut difference = 0;
 
             //this makes sure not to delete too many frames if the current frame is non interval
-            if writeVEC[0].parse::<i64>().expect("failed to parse timestamp during difference") % agent_conf.interval == 0 {
-                difference = queue[&key].len() as i64 - agent_conf.window;            
+            if *timestamp as i64 % agent_conf.interval == 0 {
+                difference = queue[&key].len() as i64 - agent_conf.window + 1;            
             } else {
-                difference = queue[&key].len() as i64 - agent_conf.window + 1;
+                difference = queue[&key].len() as i64 - agent_conf.window;
             }
-    
             //front pop all entries that are over the configured window size
             let range = std::ops::Range{start: 0, end: difference};
             for _each in range {
@@ -347,9 +344,10 @@ fn queue_frames(mut queue: HashMap<String, Vec<Vec<String>>>,
         }
 
         //add the new timestep
+        let writeVEC = arrange_vec(&frame[&key], &timestamp);
         queue.entry(key).and_modify(|timesteps| {
             //this make sure not to push if the current frame is non interval    
-            if writeVEC[0].parse::<i64>().expect("failed to parse timestamp during push") % agent_conf.interval == 0 {
+            if *timestamp as i64 % agent_conf.interval == 0 {
                 timesteps.push(writeVEC);
             }
             
@@ -1336,9 +1334,10 @@ mod tests {
         let mut queue = HashMap::new();
 
         //the upper bound is odd to make sure that queue_frames keeps any current non interval frame from being pushed
-        for _each in 0..21 {
+        for _each in 0..23 {
             let (mini_frame, timestamp) = get_many_fake_frames();
             let frame = mini_struct_to_full_struct(mini_frame);
+            println!("the timestamp before queue was {}", timestamp);
             queue = queue_frames(queue, &frame, &timestamp);
         }
         println!("the queue has {} frames in it", queue["BTCandUSD"].len());
