@@ -78,7 +78,6 @@ fn notify(notification: &Notify) {
 
 }
 
-
 fn get_data() -> (HashMap<String, CryptoFiat>, u64) {
     let mut json = "".to_string();
     let mut timestamp = 0;
@@ -254,6 +253,7 @@ fn arrange_vec(pair: &CryptoFiat, timestamp: &u64) -> Vec<String> {
     writeVEC
 }
 
+#[allow(dead_code)]
 fn queue_frames(mut queue: HashMap<String, Vec<Vec<String>>>, 
                 frame: &HashMap<String, CryptoFiat>, 
                 timestamp: &u64
@@ -279,25 +279,61 @@ fn queue_frames(mut queue: HashMap<String, Vec<Vec<String>>>,
     //with each subkey a hashmap (of different pairs) at a different timestamp
     match File::open("agent_conf.txt") {
         Err(_) => {
-            let mut file = File::create("agent_conf.txt").expect("failed to create conf file in queue_frames");
+            let file = File::create("agent_conf.txt").expect("failed to create conf file in queue_frames");
             file.sync_all().expect("failed to sync changes after creating conf in queue_frames");
             },
         Ok(_) => ()
     };
+    //default conf
+    let default_conf = Configuration {
+        pairs: vec!["BTCandUSD".to_string()], 
+        window: 10, 
+        interval: 60, 
+        //this is the path of the output files for the agent not the conf file
+        path: "".to_string()
+    };
 
+    let conf_json = fs::read_to_string("agent_conf.txt").expect("failed to read conf");
+
+    let agent_conf: Configuration = match serde_json::from_str(&conf_json) {
+        Ok(conf) => conf,
+        Err(_) => default_conf,
+    };
+
+    // now we just have to integrate the configuration
+    //this may require a rewrite of the following
+
+    //need to check if the incoming queue is already the specified size,
+    //then remove one if it is
+
+    //not sure how to check if each is Interval seconds more than the last
+
+    //this inserts a key and a blank timestep vec if there are none
     for pair in frame.keys() {
         let mut timesteps = vec![];
         queue.entry(pair.to_string()).or_insert(timesteps);
     }
 
+    //this inserts the new frame's write vec
     for pair in queue.clone() {
         let key = pair.0.to_string();
+        //the quantitiy checker can probably go here
+        if queue[&key].len() as i64 >= agent_conf.window {
+            let difference = queue[&key].len() as i64 - agent_conf.window + 1;
+            let range = std::ops::Range{start: 0, end: difference};
+            for _each in range {
+                let remove_key = key.clone();
+                queue.entry(remove_key).and_modify(|timesteps|{
+                    timesteps.remove(0);
+                });
+            }
+        }
         let writeVEC = arrange_vec(&frame[&key], &timestamp);
         queue.entry(key).and_modify(|timesteps| {
             timesteps.push(writeVEC);
         });
-
     }
+
     queue
 }
 
@@ -1259,7 +1295,10 @@ mod tests {
         let (mini_frame, timestamp) = get_many_fake_frames();
         let frame = mini_struct_to_full_struct(mini_frame);
         let mut queue = HashMap::new();
-        queue = queue_frames(queue, &frame, &timestamp);
+
+        for _each in 0..20 {
+            queue = queue_frames(queue, &frame, &timestamp);
+        }
 
         if queue["BTCandUSD"].len() != 10 {
             println!("the default queue length was not 10");
