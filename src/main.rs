@@ -314,10 +314,9 @@ fn queue_frames(mut queue: HashMap<String, Vec<Vec<String>>>,
         queue.entry(pair.to_string()).or_insert(timesteps);
     }
 
-    //this inserts the new frame's write vec
+    //this does the add/remove mutation business
     for pair in queue.clone() {
         let key = pair.0.to_string();
-        //the quantitiy checker can probably go here
         if queue[&key].len() as i64 >= agent_conf.window {
             let difference = queue[&key].len() as i64 - agent_conf.window + 1;
             let range = std::ops::Range{start: 0, end: difference};
@@ -1292,12 +1291,17 @@ mod tests {
             Ok(_) => fs::remove_file("agent_conf.txt").expect("failed to remove file after open succeeded")
         };
 
-        let (mini_frame, timestamp) = get_many_fake_frames();
-        let frame = mini_struct_to_full_struct(mini_frame);
         let mut queue = HashMap::new();
 
         for _each in 0..20 {
+            let (mini_frame, timestamp) = get_many_fake_frames();
+            let frame = mini_struct_to_full_struct(mini_frame);
             queue = queue_frames(queue, &frame, &timestamp);
+            let mut timesteps = vec![];
+            for item in queue["BTCandUSD"].clone(){
+                timesteps.push(item[0].clone());
+            }
+            println!("{:?}", timesteps);
         }
 
         if queue["BTCandUSD"].len() != 10 {
