@@ -85,6 +85,7 @@ fn get_data() -> (HashMap<String, CryptoFiat>, u64) {
         timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs();
         if timestamp % 30 == 0 {
             json = reqwest::get("https://min-api.cryptocompare.com/data/pricemultifull?fsyms=BTC,ETH,BCH,LTC,EOS,BNB,XMR,DASH,VEN,NEO,ETC,ZEC,WAVES,BTG,DCR,REP,GNO,MCO,FCT,HSR,DGD,XZC,VERI,PART,GAS,ZEN,GBYTE,BTCD,MLN,XCP,XRP,MAID&tsyms=USD&api_key={6cbc5ffe92ca7113e33a5f379e8d73389d6f8a1ba30d10a003135826b0f64815}")
+                //this should default to a frame of default primatives if the connection times out or other
                 .expect("the request to the cryptocompare api failed")
                 .text().expect("unable to get text from the cryptocompare api response");
 
@@ -258,25 +259,7 @@ fn queue_frames(mut queue: HashMap<String, Vec<Vec<String>>>,
                 frame: &HashMap<String, CryptoFiat>, 
                 timestamp: &u64
                 ) -> HashMap<String, Vec<Vec<String>>> {
-    //this should read the agent conf file and set window_size and interval
-    //push each new frame to the queue until the queue is == 10 frames
-    //then remove the 0th frame each time a frame is pushed to the queue
 
-    //it should get a writeVEC for each pair in the frame
-    //then assemble the writeVECS in the following fashion
-
-    //for pair in frame.keys():
-    //  let writeVEC = arrange_vec(frame[pair], timestamp)
-    //  if queue[pair][-1][0] - writeVEC[0] >= interval:
-    //      queue[pair].push(writeVEC)
-    //      if queue[pair].len() > window_size:
-    //          queue[pair].remove(0)
-    //
-    //queue is hashmap<String, Vec<Vec<String>>> (
-    //                                      "BTCandUSD": [writeVEC0, writeVEC1], 
-    //                                      "ETHandUSD": [writeVEC0, writeVEC1]
-    //                                    )
-    //with each subkey a hashmap (of different pairs) at a different timestamp
     match File::open("agent_conf.txt") {
         Err(_) => {
             let file = File::create("agent_conf.txt").expect("failed to create conf file in queue_frames");
@@ -287,7 +270,7 @@ fn queue_frames(mut queue: HashMap<String, Vec<Vec<String>>>,
     //default conf
     let default_conf = Configuration {
         pairs: vec!["BTCandUSD".to_string()], 
-        window: 10, 
+        window: 60, 
         interval: 60, 
         //this is the path of the output files for the agent not the conf file
         path: "".to_string()
@@ -295,19 +278,17 @@ fn queue_frames(mut queue: HashMap<String, Vec<Vec<String>>>,
 
     let conf_json = fs::read_to_string("agent_conf.txt").expect("failed to read conf");
 
+    //this should set to default in any case of malformed conf
     let agent_conf: Configuration = match serde_json::from_str(&conf_json) {
         Ok(conf) => conf,
         Err(_) => default_conf,
     };
 
-    // now we just have to integrate the configuration
-    //this may require a rewrite of the following
+    //here is where we would check the well formed conf for validity
+    //            window should be greater than 0 and present
+    //        interval should be greater than 30, mulitple of 30 and present
+     //       paires should be present, and len greater than 0
 
-    //need to check if the incoming queue is already the specified size,
-    //then remove one if it is
-
-    //not sure how to check if each is Interval seconds more than the last
-    //might be able to use retain on timesteps with |&step| step % 60 == 0 as its arg 
 
     //this inserts a key and a blank timestep vec if there are none
     for pair in frame.keys() {
@@ -895,7 +876,7 @@ mod tests {
     }
 
     #[test]
-    fn get_many_fake_frames_util_group() {
+    fn get_many_fake_frames_util_group_with_2() {
         //it seems these do not run sequentially in any case, must be run with -- --test-threads=1 to pass
         //otherwise get_many reset returns correct_timestamp + 30 fairly consistently
         //as the error is consistent, I believe it may be something I wrote wrong rather than a race
@@ -950,9 +931,13 @@ mod tests {
         }
     }
 
+    fn get_data_survives_bad_connection_and_api() -> Result<(),()> {
+        Err(())
+    }
+
     #[test]
     #[ignore]
-    fn get_data_group(){
+    fn get_data_group_with_3(){
         get_data_sleeps_till_30().expect("the request did not happen on a round 30 seconds");
         get_data_creates_valid_frame().expect("get_data returned an invalid frame");
         get_data_frame_has_all_crypto().expect("frame does not contain enough crypto-USD pairs");
@@ -995,7 +980,7 @@ mod tests {
     }
 
     #[test]
-    fn arrange_vec_test_group(){
+    fn arrange_vec_test_group_with_2(){
         arrange_vec_has_29_items().expect("arrange_vec returns an incorrect number of items");
         arrange_vec_returns_valid_writevec().expect("arrange_vec returns an invalid writeVEC");
     }
@@ -1177,7 +1162,7 @@ mod tests {
     }
 
     #[test]
-    fn write_data_group(){
+    fn write_data_group_with_4(){
         write_data_creates_db_when_none().expect("write_data failed to create master");
         write_data_adds_valid_tables_to_db().expect("write_data failed to add tables to DB");
         write_data_adds_valid_columns().expect("write_data failed to add valid columns");
@@ -1279,9 +1264,13 @@ mod tests {
         }
     }
 
+    fn queue_frames_notifies_when_specified_window_is_complete() -> Result <(),()> {
+        Err(())
+    }
+
 
     #[test]
-    fn queue_frames_group(){
+    fn queue_frames_group_with_3(){
         queue_frames_returns_all_keys().expect("queue_frames did not return the expected keys");
         queue_frames_returns_valid_data().expect("queue_frames did not return a parsable timestamp at [0][0] position");
         queue_frames_returns_more_than_one_vec().expect("queue_frames did not return multiple timesteps");
@@ -1334,7 +1323,7 @@ mod tests {
         let mut queue = HashMap::new();
 
         //the upper bound is odd to make sure that queue_frames keeps any current non interval frame from being pushed
-        for _each in 0..23 {
+        for _each in 0..121 {
             let (mini_frame, timestamp) = get_many_fake_frames();
             let frame = mini_struct_to_full_struct(mini_frame);
             println!("the timestamp before queue was {}", timestamp);
@@ -1342,7 +1331,7 @@ mod tests {
         }
         println!("the queue has {} frames in it", queue["BTCandUSD"].len());
 
-        if queue["BTCandUSD"].len() != 10 {
+        if queue["BTCandUSD"].len() != 60 {
             println!("the default queue length was not 10");
             return Err(())
         }
@@ -1372,9 +1361,20 @@ mod tests {
             create a file with 0 len types,
             clean up file and any directories created
 
-            should default to 10/30
+            should default to 60/60
 
         */
+        match File::open("agent_conf.txt") {
+            Err(_) => (),
+            Ok(_) => fs::remove_file("agent_conf.txt").expect("failed to remove file after open succeeded")
+        };
+
+        match File::open("test_timestamp.txt") {
+            Err(_) => (),
+            Ok(_) => fs::remove_file("test_timestamp.txt").expect("failed to remove file after open succeeded")
+        };
+
+
         Err(())
     }
 
@@ -1394,7 +1394,7 @@ mod tests {
     }
 
     #[test]
-    fn queue_frames_conf_group(){
+    fn queue_frames_conf_group_with_2(){
         queue_frames_creates_conf_when_none().expect("queue_frames failed to create a blank conf file");
         queue_frames_survives_blank_conf_and_caps_at_defaults().expect("queue_frames did not use defaults when conf was blank");
         //what is this test, does it take user input???
