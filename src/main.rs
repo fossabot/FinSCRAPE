@@ -1319,7 +1319,7 @@ mod tests {
         return Ok(())
     }
 
-    fn queue_frames_survives_blank_conf() -> Result<(), ()> {
+    fn queue_frames_survives_blank_conf_and_caps_at_defaults() -> Result<(), ()> {
         match File::open("agent_conf.txt") {
             Err(_) => (),
             Ok(_) => fs::remove_file("agent_conf.txt").expect("failed to remove file after open succeeded")
@@ -1378,6 +1378,9 @@ mod tests {
         Err(())
     }
 
+    fn queue_frames_removes_many_when_interval_is_changed() -> Result<(),()> {
+        Err(())
+    }
 
     fn queue_frames_notifies_invalid_conf_params() -> Result<(), ()> {
         Err(())
@@ -1390,30 +1393,10 @@ mod tests {
         Err(())
     }
 
-    fn queue_frames_caps_at_conf_window() -> Result <(), ()> {
-        //this will check that the window size is correct (max frames before removing one),
-        //based on the agent_conf file
-
-        //create the conf file with x window size and 30 seconds duration
-        //check if queue wraps at x quantity of frames per key
-
-        //do for several values of x
-        Err(())
-    }
-
-    fn queue_frames_returns_conf_spaced_vecs() -> Result <(), ()> {
-        //this will check if the duration between timestamps is correct
-        //based on the agent_conf file
-
-        //create conf file with a window size of 10 and x duration where x > 30 and x % 30 == 0
-        //check if queue contains 10 vecs per key whose timestamps are x duration apart
-        Err(())
-    }
-
     #[test]
     fn queue_frames_conf_group(){
         queue_frames_creates_conf_when_none().expect("queue_frames failed to create a blank conf file");
-        queue_frames_survives_blank_conf().expect("queue_frames did not use defaults when conf was blank");
+        queue_frames_survives_blank_conf_and_caps_at_defaults().expect("queue_frames did not use defaults when conf was blank");
         //what is this test, does it take user input???
         //queue_frames_notifies_invalid_conf_params().expect("queue_frames failed to notify");
     }
