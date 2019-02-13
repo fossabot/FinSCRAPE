@@ -1577,11 +1577,15 @@ mod tests {
             queue = queue_frames(queue, &frame, &timestamp);
         }
 
+        let timestamp0: i64 = queue["LTCandUSD"][0][0].parse().expect("failed to parse timestamp0");
+        let timestamp1: i64 = queue["LTCandUSD"][1][0].parse().expect("failed to parse timestamp1");
+        let start_interval = timestamp1 - timestamp0;
+
         let timestamp0: i64 = queue["LTCandUSD"][8][0].parse().expect("failed to parse timestamp0");
         let timestamp1: i64 = queue["LTCandUSD"][9][0].parse().expect("failed to parse timestamp1");
-        let interval = timestamp1 - timestamp0;
+        let end_interval = timestamp1 - timestamp0;
 
-        if queue["LTCandUSD"].len() > 10 || interval != 120 {
+        if queue["LTCandUSD"].len() > 10 || start_interval != 120 || end_interval != 120 {
             return Err(());
         } else {
             return Ok(());
