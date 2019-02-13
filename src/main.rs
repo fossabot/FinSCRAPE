@@ -299,17 +299,25 @@ fn queue_frames(mut queue: HashMap<String, Vec<Vec<String>>>,
     //this should set to default in any case of malformed conf
     let agent_conf: Configuration = match serde_json::from_str(&conf_json) {
         Ok(conf) =>  {
-            let import_conf: Configuration = conf;
-            let mut err = 0;
-            for pair in &import_conf.pairs {
+            let mut import_conf: Configuration = conf;
+            let mut err_count = 0;
+            let mut err_string = "".to_owned();
+            for pair in &import_conf.clone().pairs {
                 //check if the conf contains impossible pair keys
                 if !&frame.contains_key(pair){
-                    err += 1;
+                    import_conf.pairs = default_conf.pairs.clone();
+                    err_string = "used default pairs, bad pair".to_owned();
+                    err_count += 1;
                 }
             }
-            if err > 0 {
-                println!("used default_conf, bad pair: {:?}", import_conf.pairs);
-                default_conf
+            if import_conf.interval < 30 {
+                import_conf.interval = 60;
+                err_string = "used default interval, interval too small".to_owned();
+                err_count += 1;
+            }
+            if err_count > 0 {
+                println!("{}", err_string);
+                import_conf
             } else {
                 import_conf
             }
@@ -551,7 +559,7 @@ struct CryptoFiat {
 
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 struct Configuration {
     pairs: Vec<String>,
     window: i64,
