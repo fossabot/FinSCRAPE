@@ -787,7 +787,6 @@ mod tests {
         for table in table_vec {
             let query = format!("SELECT * FROM {} WHERE timestamp > ?", &table);
             if index > 1548314400 {
-                println!("index reset");
                 index = 1548299310;
             }
             let query_index = &[index];
@@ -868,7 +867,6 @@ mod tests {
         for iteration in 0..504 {
             let (frame, timestamp) = get_many_fake_frames();
         }
-        println!("got past the values in the db");
         let (frame, timestamp) = get_many_fake_frames();
         //this should equal the second timestamp, because the get_many will never return the first
         //as the SELECT is > timestamp (which defaults to the first)
@@ -884,7 +882,7 @@ mod tests {
     }
 
     #[test]
-    #[serial(mut_timestamp)]
+    #[serial]
     fn get_many_fake_frames_group_with_2() {
         //mutation/deletion of the shared file in get_many_fake_frames prevents any of these tests from being run in parallel
         get_many_fake_frames_returns_valid_data().expect("get_many_fake returned invalid data");
@@ -1328,6 +1326,7 @@ mod tests {
         return Ok(())
     }
 
+    //not done
     fn queue_frames_survives_blank_conf_and_caps_at_defaults() -> Result<(), ()> {
         clean_up_confs();
 
