@@ -7,6 +7,8 @@ use serde::{Deserialize, Serialize};
 
 use rusqlite::{Connection, NO_PARAMS, MappedRows, Row};
 
+use serial_test_derive::serial;
+
 use std::str;
 use std::fs;
 use std::fs::File;
@@ -882,6 +884,7 @@ mod tests {
     }
 
     #[test]
+    #[serial(mut_timestamp)]
     fn get_many_fake_frames_group_with_2() {
         //mutation/deletion of the shared file in get_many_fake_frames prevents any of these tests from being run in parallel
         get_many_fake_frames_returns_valid_data().expect("get_many_fake returned invalid data");
@@ -1288,6 +1291,7 @@ mod tests {
 
 
     #[test]
+    #[serial(mut_timestamp)]
     fn queue_frames_group_with_3(){
         queue_frames_returns_all_keys().expect("queue_frames did not return the expected keys");
         queue_frames_returns_valid_data().expect("queue_frames did not return a parsable timestamp at [0][0] position");
@@ -1402,6 +1406,7 @@ mod tests {
     }
 
     #[test]
+    #[serial(mut_timestamp)]
     fn queue_frames_conf_group_with_2(){
         queue_frames_creates_conf_when_none().expect("queue_frames failed to create a blank conf file");
         queue_frames_survives_blank_conf_and_caps_at_defaults().expect("queue_frames did not use defaults when conf was blank");
