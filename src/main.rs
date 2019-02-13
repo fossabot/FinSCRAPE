@@ -309,7 +309,7 @@ fn queue_frames(mut queue: HashMap<String, Vec<Vec<String>>>,
 
 
     //this inserts a key and a blank timestep vec if there are none
-    for pair in frame.keys() {
+    for pair in &agent_conf.pairs {
         let mut timesteps = vec![];
         queue.entry(pair.to_string()).or_insert(timesteps);
     }
@@ -343,7 +343,12 @@ fn queue_frames(mut queue: HashMap<String, Vec<Vec<String>>>,
         }
 
         //add the new timestep
+        println!("the keys in the conf are {:?}", agent_conf.pairs);
+        println!("the keys in the frame are {:?}", &frame.keys());
+        //the error happens here in
         let writeVEC = arrange_vec(&frame[&key], &timestamp);
+        println!("the error happens after this");
+
         queue.entry(key).and_modify(|timesteps| {
             //this make sure not to push if the current frame is non interval    
             if *timestamp as i64 % agent_conf.interval == 0 {
@@ -1187,7 +1192,9 @@ mod tests {
         write_data_adds_valid_row_to_one_table().expect("write_data failed to add a valid row to the  first table");
     }
 
+    //this one somehow returns hamandeggs
     fn queue_frames_returns_all_keys() -> Result <(), ()> {
+        clean_up_confs();
         let (mini_frame, timestamp) = get_many_fake_frames();
         let frame = mini_struct_to_full_struct(mini_frame);
         let mut queue = HashMap::new();
@@ -1228,7 +1235,6 @@ mod tests {
                                             "ZECandUSD".to_string(),
                                             "ZENandUSD".to_string()
                                             ].iter().cloned().collect();
-
 
         for key in queue.keys() {
             table_vec.insert(key.to_string());
@@ -1274,7 +1280,6 @@ mod tests {
         }
 
         clean_up_confs();
-
         if queue["BTCandUSD"].len() < 2 {
             return Err(());
         } else {
