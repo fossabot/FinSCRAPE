@@ -301,6 +301,7 @@ fn queue_frames(mut queue: HashMap<String, Vec<Vec<String>>>,
         Ok(conf) =>  conf,
         Err(err) => {println!("used default_conf, error was {}", err); default_conf},
     };
+    
 
     //here is where we would check the well formed conf for validity
     //            window should be greater than 0 and present
