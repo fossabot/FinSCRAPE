@@ -1502,7 +1502,46 @@ mod tests {
     }
 
     fn queue_frames_survives_impossible_interval() -> Result<(), ()> {
-        Err(())
+        clean_up_confs();
+        let mut file = File::create("agent_conf.txt").expect("failed to create agent_conf.txt");
+        file.write(&"{\n    \"pairs\": [\n                  \"LTCandUSD\",\n                  \"MAIDandUSD\"\n],\n    \"window\": 60,\n    \"interval\": 75,\n    \"path\": \"/agent_output/\"\n}\n".to_string().into_bytes()).expect("failed to write invalid pairs to agent_conf.txt");
+        file.sync_all().expect("failed to sync file changes after writing agent_conf.txt");
+
+        let expect_vec: HashSet<String> = [
+                                            "LTCandUSD".to_string(),
+                                            "MAIDandUSD".to_string(),
+                                            ].iter().cloned().collect();
+
+        let mut queue = HashMap::new();
+
+        for _each in 0..21 {
+            let (mini_frame, timestamp) = get_many_fake_frames();
+            let frame = mini_struct_to_full_struct(mini_frame);
+            queue = queue_frames(queue, &frame, &timestamp);
+        }
+
+        let mut error_count = 0;
+        let returned_vec: HashSet<String> = queue.keys().map(|key| key.to_owned()).collect();
+        if returned_vec != expect_vec {
+            println!("queue frames did not return to correct pairs when given valid pairs and an impossible interval \n it returned {:?}", returned_vec);
+            error_count += 1;
+        } 
+
+        let timestamp0: i64 = queue["LTCandUSD"][8][0].parse().expect("failed to parse timestamp0");
+        let timestamp1: i64 = queue["LTCandUSD"][9][0].parse().expect("failed to parse timestamp1");
+    
+        clean_up_confs();
+
+        if timestamp1 - timestamp0 != 60 {
+            println!("the queue interval did not revert 60 seconds default after being given too an impossible");
+            error_count += 1;
+        }
+
+        if error_count > 0 {
+            return Err(());
+        } else {
+            return Ok(());
+        }
     }
 
     fn queue_frames_removes_many_when_interval_is_changed() -> Result<(),()> {
@@ -1552,6 +1591,7 @@ mod tests {
         queue_frames_survives_invalid_pairs().expect("queue_frames did not revert to default when given an invalid config");
         queue_frames_returns_pairs_specified_in_conf().expect("queue_frames failed to return pairs given in a valid conf");
         queue_frames_survives_too_small_duration().expect("queue_frames did not properly continue after being given too small a duration");
+        queue_frames_survives_impossible_interval().expect("queue_frames did not continue after being given an interval not divisable by 30");
         //what is this test, does it take user input???
         //queue_frames_notifies_invalid_conf_params().expect("queue_frames failed to notify");
     }
