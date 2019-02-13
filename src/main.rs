@@ -1377,7 +1377,7 @@ mod tests {
         Ok(())
     }
 
-    fn queue_frames_survives_invalid_conf() -> Result<(), ()> {
+    fn queue_frames_survives_invalid_pairs() -> Result<(), ()> {
         /*
             window should be greater than 0 and present
             interval should be greater than 30, mulitple of 30 and present
@@ -1450,7 +1450,39 @@ mod tests {
             clean_up_confs();
             return Err(());
         }
+    }
 
+    fn queue_frames_survives_too_small_duration() -> Result<(), ()> {
+        clean_up_confs();
+        let mut file = File::create("agent_conf.txt").expect("failed to create agent_conf.txt");
+        file.write(&"{\n    \"pairs\": [\n                  \"LTCandUSD\",\n                  \"MAIDandUSD\"\n],\n    \"window\": 60,\n    \"interval\": 15,\n    \"path\": \"/agent_output/\"\n}\n".to_string().into_bytes()).expect("failed to write invalid pairs to agent_conf.txt");
+        file.sync_all().expect("failed to sync file changes after writing agent_conf.txt");
+
+        let expect_vec: HashSet<String> = [
+                                            "LTCandUSD".to_string(),
+                                            "MAIDandUSD".to_string(),
+                                            ].iter().cloned().collect();
+
+        let mut queue = HashMap::new();
+        let (mini_frame, timestamp) = get_many_fake_frames();
+        let frame = mini_struct_to_full_struct(mini_frame);
+        queue = queue_frames(queue, &frame, &timestamp);
+
+        let returned_vec: HashSet<String> = queue.keys().map(|key| key.to_owned()).collect();
+        if returned_vec == expect_vec {
+            //this worked with no changes to queue_frames
+            clean_up_confs();
+            return Ok(());
+        } else {
+            println!("queue frames did not return to correct pairs when given valid pairs and an overly small duration \n it returned {:?}", returned_vec);
+            clean_up_confs();
+            return Err(());
+        }
+
+    }
+
+    fn queue_frames_survives_non_interval_duration() -> Result<(), ()> {
+        Err(())
     }
 
     fn queue_frames_removes_many_when_interval_is_changed() -> Result<(),()> {
@@ -1497,7 +1529,7 @@ mod tests {
     fn queue_frames_conf_group_with_2(){
         queue_frames_creates_conf_when_none().expect("queue_frames failed to create a blank conf file");
         queue_frames_survives_blank_conf_and_caps_at_defaults().expect("queue_frames did not use defaults when conf was blank");
-        queue_frames_survives_invalid_conf().expect("queue_frames did not revert to default when given an invalid config");
+        queue_frames_survives_invalid_pairs().expect("queue_frames did not revert to default when given an invalid config");
         queue_frames_returns_pairs_specified_in_conf().expect("queue_frames failed to return pairs given in a valid conf");
         //what is this test, does it take user input???
         //queue_frames_notifies_invalid_conf_params().expect("queue_frames failed to notify");
