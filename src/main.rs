@@ -298,10 +298,24 @@ fn queue_frames(mut queue: HashMap<String, Vec<Vec<String>>>,
 
     //this should set to default in any case of malformed conf
     let agent_conf: Configuration = match serde_json::from_str(&conf_json) {
-        Ok(conf) =>  conf,
+        Ok(conf) =>  {
+            let import_conf: Configuration = conf;
+            let mut err = 0;
+            for pair in &import_conf.pairs {
+                //check if the conf contains impossible pair keys
+                if !&frame.contains_key(pair){
+                    err += 1;
+                }
+            }
+            if err > 0 {
+                println!("used default_conf, bad pair");
+                default_conf
+            } else {
+                import_conf
+            }
+        },
         Err(err) => {println!("used default_conf, error was {}", err); default_conf},
     };
-    
 
     //here is where we would check the well formed conf for validity
     //            window should be greater than 0 and present
