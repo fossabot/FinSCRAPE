@@ -315,6 +315,10 @@ fn queue_frames(mut queue: HashMap<String, Vec<Vec<String>>>,
                 err_string = "used default interval, interval too small".to_owned();
                 err_count += 1;
             }
+            if import_conf.interval % 30 != 0 {
+                import_conf.interval = 60;
+                err_string = "used default interval, interval is not divisable by 30".to_owned();
+            }
             if err_count > 0 {
                 println!("{}", err_string);
                 import_conf
@@ -1585,7 +1589,7 @@ mod tests {
 
     #[test]
     #[serial(mut_timestamp)]
-    fn queue_frames_conf_group_with_5(){
+    fn queue_frames_conf_group_with_6(){
         queue_frames_creates_conf_when_none().expect("queue_frames failed to create a blank conf file");
         queue_frames_survives_blank_conf_and_caps_at_defaults().expect("queue_frames did not use defaults when conf was blank");
         queue_frames_survives_invalid_pairs().expect("queue_frames did not revert to default when given an invalid config");

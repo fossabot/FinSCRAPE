@@ -1,9 +1,0 @@
-{
-    "pairs": [
-                  "LTCandUSD",
-                  "MAIDandUSD"
-],
-    "window": 60,
-    "interval": 75,
-    "path": "/agent_output/"
-}
