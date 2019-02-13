@@ -7,8 +7,6 @@ use serde::{Deserialize, Serialize};
 
 use rusqlite::{Connection, NO_PARAMS, MappedRows, Row};
 
-use serial_test_derive::serial;
-
 use std::str;
 use std::fs;
 use std::fs::File;
@@ -632,6 +630,8 @@ fn main() {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use serial_test_derive::serial;
+
 
     struct MiniCryptoFiat {
         timestamp: i64,
