@@ -1,9 +1,7 @@
-//this will be used to parse json into structs
 // vscode-fold=1
 #[macro_use]
 extern crate serde_derive;
-extern crate serde_json;
-extern crate serde;
+
 use serde_json::{Value, from_str};
 use serde::{Deserialize, Serialize};
 
