@@ -732,6 +732,7 @@ mod tests {
 
     //when using this in a loop make sure to remove test_timestamp.txt before the loop
     fn get_many_fake_frames() -> (HashMap<String, tests::MiniCryptoFiat>, u64) {
+        //this should access the timestamp file in a thread_safe way, to be able to run the tests in parallel
         let index: Box<Fn() -> String> = match File::open("test_timestamp.txt") {
             //this was literally hitler to write, but its all mine from scratch
             Err(e) => Box::new(|| {
@@ -898,16 +899,15 @@ mod tests {
     }
 
     #[test]
-    fn get_many_fake_frames_util_group_with_2() {
-        //it seems these do not run sequentially in any case, must be run with -- --test-threads=1 to pass
-        //otherwise get_many reset returns correct_timestamp + 30 fairly consistently
-        //as the error is consistent, I believe it may be something I wrote wrong rather than a race
+    fn get_many_fake_frames_group_with_2() {
+        //mutation/deletion of the shared file in get_many_fake_frames prevents any of these tests from being run in parallel
         get_many_fake_frames_returns_valid_data().expect("get_many_fake returned invalid data");
         get_many_fake_frames_resets_after_db_exhausted().expect("get_many_fake did not reset after db was exhausted");
 
     }
 
     fn clean_up_confs() {
+        //these should be run in a thread safe way along with get_many_fake_frames
         match File::open("agent_conf.txt") {
             Err(_) => (),
             Ok(_) => fs::remove_file("agent_conf.txt").expect("failed to remove file after open succeeded")
