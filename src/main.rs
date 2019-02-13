@@ -889,7 +889,6 @@ mod tests {
         //mutation/deletion of the shared file in get_many_fake_frames prevents any of these tests from being run in parallel
         get_many_fake_frames_returns_valid_data().expect("get_many_fake returned invalid data");
         get_many_fake_frames_resets_after_db_exhausted().expect("get_many_fake did not reset after db was exhausted");
-
     }
 
     fn clean_up_confs() {
@@ -1338,10 +1337,8 @@ mod tests {
         for _each in 0..121 {
             let (mini_frame, timestamp) = get_many_fake_frames();
             let frame = mini_struct_to_full_struct(mini_frame);
-            println!("the timestamp before queue was {}", timestamp);
             queue = queue_frames(queue, &frame, &timestamp);
         }
-        println!("the queue has {} frames in it", queue["BTCandUSD"].len());
 
         if queue["BTCandUSD"].len() != 60 {
             println!("the default queue length was not 10");
@@ -1381,13 +1378,61 @@ mod tests {
 
         */
         clean_up_confs();
+        let mut file = File::create("agent_conf.txt").expect("failed to create agent_conf.txt");
+        file.write(&"{\n    \"pairs\": [\n                  \"HAMandEGG\",\n                  \"BOBandMARTHA\",\n],\n    \"window\": 60,\n    \"interval\": 60,\n    \"path\": \"/agent_output/\"\n}\n".to_string().into_bytes()).expect("failed to write invalid pairs to agent_conf.txt");
+        file.sync_all().expect("failed to sync file changes after writing agent_conf.txt");
 
-        let file = OpenOptions::new().write(true)
-                             .create_new(true)
-                             .open("agent_conf.txt");
+        let expect_vec: HashSet<String> = [
+                                            "BCHandUSD".to_string(),
+                                            "BNBandUSD".to_string(),
+                                            "BTCDandUSD".to_string(),
+                                            "BTCandUSD".to_string(),
+                                            "BTGandUSD".to_string(),
+                                            "DASHandUSD".to_string(),
+                                            "DCRandUSD".to_string(),
+                                            "DGDandUSD".to_string(),
+                                            "EOSandUSD".to_string(),
+                                            "ETCandUSD".to_string(),
+                                            "ETHandUSD".to_string(),
+                                            "FCTandUSD".to_string(),
+                                            "GASandUSD".to_string(),
+                                            "GBYTEandUSD".to_string(),
+                                            "GNOandUSD".to_string(),
+                                            "HSRandUSD".to_string(),
+                                            "LTCandUSD".to_string(),
+                                            "MAIDandUSD".to_string(),
+                                            "MCOandUSD".to_string(),
+                                            "MLNandUSD".to_string(),
+                                            "NEOandUSD".to_string(),
+                                            "PARTandUSD".to_string(),
+                                            "REPandUSD".to_string(),
+                                            "VENandUSD".to_string(),
+                                            "VERIandUSD".to_string(),
+                                            "WAVESandUSD".to_string(),
+                                            "XCPandUSD".to_string(),
+                                            "XMRandUSD".to_string(),
+                                            "XRPandUSD".to_string(),
+                                            "XZCandUSD".to_string(),
+                                            "ZECandUSD".to_string(),
+                                            "ZENandUSD".to_string()
+                                            ].iter().cloned().collect();
 
-        
-        Err(())
+        let mut queue = HashMap::new();
+        let (mini_frame, timestamp) = get_many_fake_frames();
+        let frame = mini_struct_to_full_struct(mini_frame);
+        queue = queue_frames(queue, &frame, &timestamp);
+
+        let returned_vec: HashSet<String> = queue.keys().map(|key| key.to_owned()).collect();
+        if returned_vec == expect_vec {
+            //this worked with no changes to queue_frames
+            clean_up_confs();
+            return Ok(());
+        } else {
+            println!("queue frames did not revert to default config when given invalid pairs\n it returned {:?}", returned_vec);
+            clean_up_confs();
+            return Err(());
+        }
+
     }
 
     fn queue_frames_removes_many_when_interval_is_changed() -> Result<(),()> {
@@ -1402,7 +1447,31 @@ mod tests {
         /*
         if pairs.len() > performance_number of pairs then pairs is invalid
         */
-        Err(())
+        clean_up_confs();
+        let mut file = File::create("agent_conf.txt").expect("failed to create agent_conf.txt");
+        file.write(&"{\n    \"pairs\": [\n                  \"LTCandUSD\",\n                  \"MAIDandUSD\",\n],\n    \"window\": 60,\n    \"interval\": 60,\n    \"path\": \"/agent_output/\"\n}\n".to_string().into_bytes()).expect("failed to write invalid pairs to agent_conf.txt");
+        file.sync_all().expect("failed to sync file changes after writing agent_conf.txt");
+
+        let expect_vec: HashSet<String> = [
+                                            "LTCandUSD".to_string(),
+                                            "MAIDandUSD".to_string(),
+                                            ].iter().cloned().collect();
+
+        let mut queue = HashMap::new();
+        let (mini_frame, timestamp) = get_many_fake_frames();
+        let frame = mini_struct_to_full_struct(mini_frame);
+        queue = queue_frames(queue, &frame, &timestamp);
+
+        let returned_vec: HashSet<String> = queue.keys().map(|key| key.to_owned()).collect();
+        if returned_vec == expect_vec {
+            //this worked with no changes to queue_frames
+            clean_up_confs();
+            return Ok(());
+        } else {
+            println!("queue frames did not return specified config when given valid pairs\n it returned {:?}", returned_vec);
+            clean_up_confs();
+            return Err(());
+        }
     }
 
     #[test]
@@ -1410,6 +1479,8 @@ mod tests {
     fn queue_frames_conf_group_with_2(){
         queue_frames_creates_conf_when_none().expect("queue_frames failed to create a blank conf file");
         queue_frames_survives_blank_conf_and_caps_at_defaults().expect("queue_frames did not use defaults when conf was blank");
+        queue_frames_survives_invalid_conf().expect("queue_frames did not revert to default when given an invalid config");
+        queue_frames_returns_pairs_specified_in_conf().expect("queue_frames failed to return pairs given in a valid conf");
         //what is this test, does it take user input???
         //queue_frames_notifies_invalid_conf_params().expect("queue_frames failed to notify");
     }
