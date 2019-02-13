@@ -298,8 +298,8 @@ fn queue_frames(mut queue: HashMap<String, Vec<Vec<String>>>,
 
     //this should set to default in any case of malformed conf
     let agent_conf: Configuration = match serde_json::from_str(&conf_json) {
-        Ok(conf) => conf,
-        Err(_) => default_conf,
+        Ok(conf) =>  conf,
+        Err(err) => {println!("used default_conf, error was {}", err); default_conf},
     };
 
     //here is where we would check the well formed conf for validity
@@ -1326,7 +1326,6 @@ mod tests {
         return Ok(())
     }
 
-    //not done
     fn queue_frames_survives_blank_conf_and_caps_at_defaults() -> Result<(), ()> {
         clean_up_confs();
 
@@ -1378,7 +1377,7 @@ mod tests {
         */
         clean_up_confs();
         let mut file = File::create("agent_conf.txt").expect("failed to create agent_conf.txt");
-        file.write(&"{\n    \"pairs\": [\n                  \"HAMandEGG\",\n                  \"BOBandMARTHA\",\n],\n    \"window\": 60,\n    \"interval\": 60,\n    \"path\": \"/agent_output/\"\n}\n".to_string().into_bytes()).expect("failed to write invalid pairs to agent_conf.txt");
+        file.write(&"{\n    \"pairs\": [\n                  \"HAMandEGG\",\n                  \"BOBandMARTHA\"\n],\n    \"window\": 60,\n    \"interval\": 60,\n    \"path\": \"/agent_output/\"\n}\n".to_string().into_bytes()).expect("failed to write invalid pairs to agent_conf.txt");
         file.sync_all().expect("failed to sync file changes after writing agent_conf.txt");
 
         let expect_vec: HashSet<String> = [
@@ -1448,7 +1447,7 @@ mod tests {
         */
         clean_up_confs();
         let mut file = File::create("agent_conf.txt").expect("failed to create agent_conf.txt");
-        file.write(&"{\n    \"pairs\": [\n                  \"LTCandUSD\",\n                  \"MAIDandUSD\",\n],\n    \"window\": 60,\n    \"interval\": 60,\n    \"path\": \"/agent_output/\"\n}\n".to_string().into_bytes()).expect("failed to write invalid pairs to agent_conf.txt");
+        file.write(&"{\n    \"pairs\": [\n                  \"LTCandUSD\",\n                  \"MAIDandUSD\"\n],\n    \"window\": 60,\n    \"interval\": 60,\n    \"path\": \"/agent_output/\"\n}\n".to_string().into_bytes()).expect("failed to write invalid pairs to agent_conf.txt");
         file.sync_all().expect("failed to sync file changes after writing agent_conf.txt");
 
         let expect_vec: HashSet<String> = [
