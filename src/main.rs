@@ -7,22 +7,7 @@ extern crate serde;
 use serde_json::{Value, from_str};
 use serde::{Deserialize, Serialize};
 
-//this will be used to get json from server
-extern crate reqwest;
-
-//this will be used to create and add to databases
-/* HARDEST TASK */
-extern crate rusqlite;
 use rusqlite::{Connection, NO_PARAMS, MappedRows, Row};
-
-//this will be used to query the storage devices available
-extern crate systemstat;
-
-//this will send notifications to operator email
-extern crate lettre;
-
-//this will be used to read/write csv files
-extern crate csv;
 
 use std::str;
 use std::fs;

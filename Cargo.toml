@@ -14,3 +14,7 @@ systemstat = "0.1.3"
 serde = "1.0.85"
 serde_derive = "1.0.85"
 
+[dev-dependencies]
+serial_test = "*"
+serial_test_derive = "*"
+
