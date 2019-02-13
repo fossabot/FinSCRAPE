@@ -1549,7 +1549,43 @@ mod tests {
     }
 
     fn queue_frames_removes_many_when_interval_is_changed() -> Result<(),()> {
-        Err(())
+        clean_up_confs();
+        let mut file = File::create("agent_conf.txt").expect("failed to create agent_conf.txt");
+        file.write(&"{\n    \"pairs\": [\n                  \"LTCandUSD\",\n                  \"MAIDandUSD\"\n],\n    \"window\": 60,\n    \"interval\": 60,\n    \"path\": \"/agent_output/\"\n}\n".to_string().into_bytes()).expect("failed to write invalid pairs to agent_conf.txt");
+        file.sync_all().expect("failed to sync file changes after writing agent_conf.txt");
+
+        let expect_vec: HashSet<String> = [
+                                            "LTCandUSD".to_string(),
+                                            "MAIDandUSD".to_string(),
+                                            ].iter().cloned().collect();
+
+        let mut queue = HashMap::new();
+
+        for _each in 0..21 {
+            let (mini_frame, timestamp) = get_many_fake_frames();
+            let frame = mini_struct_to_full_struct(mini_frame);
+            queue = queue_frames(queue, &frame, &timestamp);
+        }
+
+        let mut file = File::create("agent_conf.txt").expect("failed to create agent_conf.txt");
+        file.write(&"{\n    \"pairs\": [\n                  \"LTCandUSD\",\n                  \"MAIDandUSD\"\n],\n    \"window\": 60,\n    \"interval\": 120,\n    \"path\": \"/agent_output/\"\n}\n".to_string().into_bytes()).expect("failed to write invalid pairs to agent_conf.txt");
+        file.sync_all().expect("failed to sync file changes after writing agent_conf.txt");
+
+        for _each in 0..20 {
+            let (mini_frame, timestamp) = get_many_fake_frames();
+            let frame = mini_struct_to_full_struct(mini_frame);
+            queue = queue_frames(queue, &frame, &timestamp);
+        }
+
+        let timestamp0: i64 = queue["LTCandUSD"][8][0].parse().expect("failed to parse timestamp0");
+        let timestamp1: i64 = queue["LTCandUSD"][9][0].parse().expect("failed to parse timestamp1");
+        let interval = timestamp1 - timestamp0;
+
+        if queue["LTCandUSD"].len() > 10 || interval != 120 {
+            return Err(());
+        } else {
+            return Ok(());
+        }
     }
 
     fn queue_frames_notifies_invalid_conf_params() -> Result<(), ()> {
@@ -1589,13 +1625,15 @@ mod tests {
 
     #[test]
     #[serial(mut_timestamp)]
-    fn queue_frames_conf_group_with_6(){
+    fn queue_frames_conf_group_with_7(){
         queue_frames_creates_conf_when_none().expect("queue_frames failed to create a blank conf file");
         queue_frames_survives_blank_conf_and_caps_at_defaults().expect("queue_frames did not use defaults when conf was blank");
         queue_frames_survives_invalid_pairs().expect("queue_frames did not revert to default when given an invalid config");
         queue_frames_returns_pairs_specified_in_conf().expect("queue_frames failed to return pairs given in a valid conf");
         queue_frames_survives_too_small_duration().expect("queue_frames did not properly continue after being given too small a duration");
         queue_frames_survives_impossible_interval().expect("queue_frames did not continue after being given an interval not divisable by 30");
+        queue_frames_removes_many_when_interval_is_changed().expect("queue_frames did not remove the non interval frames after the interval was changed");
+    
         //what is this test, does it take user input???
         //queue_frames_notifies_invalid_conf_params().expect("queue_frames failed to notify");
     }
