@@ -563,7 +563,7 @@ fn main() {
 //vecs and hashmaps all have length known, and can be defined
 
     let mut master = DB{
-        path: Some("multi.db".to_string()),
+        path: Some("fake_api.db".to_string()),
         storage_device: None
     };
 
@@ -700,7 +700,7 @@ mod tests {
     }
 
     fn get_one_fake_frame()-> (HashMap<String, CryptoFiat>, u64) {
-        let json = fs::read_to_string("response_crypto.txt")
+        let json = fs::read_to_string("fake_frame.txt")
         .expect("Something went wrong reading the file");
 
         let timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs();
@@ -794,7 +794,7 @@ mod tests {
             "ZENandUSD".to_string()
         ];
 
-        let storage = Connection::open("multi.db").expect("failed to open multi.db");
+        let storage = Connection::open("fake_api.db").expect("failed to open fake_api.db");
         let mut frame = HashMap::new();
         let mut timestamp: u64 = 0;
 
@@ -856,22 +856,19 @@ mod tests {
     }
 
     fn get_many_fake_frames_returns_valid_data() -> Result<(), ()>{
-        match File::open("test_timestamp.txt") {
-            Err(_) => (),
-            Ok(_) => fs::remove_file("test_timestamp.txt").expect("failed to remove file after open succeeded")
-        };
+        clean_up_confs();
 
         let (frame, timestamp) = get_many_fake_frames();
         if frame["BTCandUSD"].timestamp != 1548299370 {
             match File::open("test_timestamp.txt") {
                 Err(_) => (),
-                Ok(_) => fs::remove_file("test_timestamp.txt").expect("failed to remove file after open succeeded")
+                Ok(_) => clean_up_confs()
             };
             return Err(());
         } else if frame["MAIDandUSD"].price != 0.1203174445 {
             match File::open("test_timestamp.txt") {
                 Err(_) => (),
-                Ok(_) => fs::remove_file("test_timestamp.txt").expect("failed to remove file after open succeeded")
+                Ok(_) => clean_up_confs()
             };
             return Err(());
         }
@@ -879,10 +876,8 @@ mod tests {
     }
 
     fn get_many_fake_frames_resets_after_db_exhausted() -> Result<(), ()> {
-        match File::open("test_timestamp.txt") {
-            Err(_) => (),
-            Ok(_) => fs::remove_file("test_timestamp.txt").expect("failed to remove file after open succeeded")
-        };
+        clean_up_confs();
+
         //this may need to be 505 because its upper bound is not inclusive
         for iteration in 0..504 {
             let (frame, timestamp) = get_many_fake_frames();
@@ -893,17 +888,11 @@ mod tests {
         //as the SELECT is > timestamp (which defaults to the first)
     
         if timestamp != 1548299370 {
-            match File::open("test_timestamp.txt") {
-                Err(_) => (),
-                Ok(_) => fs::remove_file("test_timestamp.txt").expect("failed to remove file after open succeeded")
-            };
+            clean_up_confs();
             return Err(());
         }
 
-        match File::open("test_timestamp.txt") {
-            Err(_) => (),
-            Ok(_) => fs::remove_file("test_timestamp.txt").expect("failed to remove file after open succeeded")
-        };
+        clean_up_confs();
         Ok(())
 
     }
@@ -915,6 +904,19 @@ mod tests {
         //as the error is consistent, I believe it may be something I wrote wrong rather than a race
         get_many_fake_frames_returns_valid_data().expect("get_many_fake returned invalid data");
         get_many_fake_frames_resets_after_db_exhausted().expect("get_many_fake did not reset after db was exhausted");
+
+    }
+
+    fn clean_up_confs() {
+        match File::open("agent_conf.txt") {
+            Err(_) => (),
+            Ok(_) => fs::remove_file("agent_conf.txt").expect("failed to remove file after open succeeded")
+        };
+
+        match File::open("test_timestamp.txt") {
+            Err(_) => (),
+            Ok(_) => fs::remove_file("test_timestamp.txt").expect("failed to remove file after open succeeded")
+        };
 
     }
 
@@ -1256,11 +1258,8 @@ mod tests {
     }
 
     fn queue_frames_returns_valid_data() -> Result <(), ()> {
-        match File::open("test_timestamp.txt") {
-            Err(_) => (),
-            Ok(_) => fs::remove_file("test_timestamp.txt").expect("failed to remove file after open succeeded")
-        };
-
+        clean_up_confs();
+        
         let mut queue = HashMap::new();
         //this fails if done once due to the 60s interval default
         for each in 0..2 {
@@ -1268,6 +1267,9 @@ mod tests {
             let frame = mini_struct_to_full_struct(mini_frame);
             queue = queue_frames(queue, &frame, &timestamp);
         }
+
+        clean_up_confs();
+
         //this is the only indexing operation
         let thisBOX = &queue["BTCandUSD"][0][0];
         let thisBOX: u64 = match thisBOX.parse::<u64>() {
@@ -1277,10 +1279,8 @@ mod tests {
     }
 
     fn queue_frames_returns_more_than_one_vec() -> Result <(), ()> {
-        match File::open("test_timestamp.txt") {
-            Err(_) => (),
-            Ok(_) => fs::remove_file("test_timestamp.txt").expect("failed to remove file after open succeeded")
-        };
+        clean_up_confs();
+
         let mut queue = HashMap::new();
 
         //this should be four because of the default interval of 60s (two 30s frame are skipped)
@@ -1289,6 +1289,8 @@ mod tests {
             let frame = mini_struct_to_full_struct(mini_frame);
             queue = queue_frames(queue, &frame, &timestamp);
         }
+
+        clean_up_confs();
 
         if queue["BTCandUSD"].len() < 2 {
             return Err(());
@@ -1322,10 +1324,7 @@ mod tests {
         }
 
         */
-        match File::open("agent_conf.txt") {
-            Err(_) => (),
-            Ok(_) => fs::remove_file("agent_conf.txt").expect("failed to remove file after open succeeded")
-        };
+        clean_up_confs();
 
         let (mini_frame, timestamp) = get_many_fake_frames();
         let frame = mini_struct_to_full_struct(mini_frame);
@@ -1337,21 +1336,14 @@ mod tests {
             Ok(_) => ()
         };
 
+        clean_up_confs();
+
         //no comments allowed in json so we are going to skip the info header
         return Ok(())
     }
 
     fn queue_frames_survives_blank_conf_and_caps_at_defaults() -> Result<(), ()> {
-        match File::open("agent_conf.txt") {
-            Err(_) => (),
-            Ok(_) => fs::remove_file("agent_conf.txt").expect("failed to remove file after open succeeded")
-        };
-
-        match File::open("test_timestamp.txt") {
-            Err(_) => (),
-            Ok(_) => fs::remove_file("test_timestamp.txt").expect("failed to remove file after open succeeded")
-        };
-
+        clean_up_confs();
 
         let mut queue = HashMap::new();
 
@@ -1372,6 +1364,8 @@ mod tests {
         //this indexes the last values to make sure queue_frames keeps any current non interval frame from being pushed
         let timestamp0: i64 = queue["BTCandUSD"][8][0].parse().expect("failed to parse timestamp0");
         let timestamp1: i64 = queue["BTCandUSD"][9][0].parse().expect("failed to parse timestamp1");
+    
+        clean_up_confs();
 
         if timestamp1 - timestamp0 != 60 {
             println!("the default queue interval was not 60 seconds apart");
@@ -1396,18 +1390,16 @@ mod tests {
 
             should default to 60/60
 
+            "{\n    \"pairs\": [\n                  \"HAMandEGG\",\n                  \"BOBandMARTHA\",\n],\n    \"window\": 60,\n    \"interval\": 60,\n    \"path\": \"/agent_output/\"\n}\n"
+
         */
-        match File::open("agent_conf.txt") {
-            Err(_) => (),
-            Ok(_) => fs::remove_file("agent_conf.txt").expect("failed to remove file after open succeeded")
-        };
+        clean_up_confs();
 
-        match File::open("test_timestamp.txt") {
-            Err(_) => (),
-            Ok(_) => fs::remove_file("test_timestamp.txt").expect("failed to remove file after open succeeded")
-        };
+        let file = OpenOptions::new().write(true)
+                             .create_new(true)
+                             .open("agent_conf.txt");
 
-
+        
         Err(())
     }
 
