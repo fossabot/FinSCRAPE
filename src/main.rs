@@ -308,7 +308,7 @@ fn queue_frames(mut queue: HashMap<String, Vec<Vec<String>>>,
                 }
             }
             if err > 0 {
-                println!("used default_conf, bad pair");
+                println!("used default_conf, bad pair: {:?}", import_conf.pairs);
                 default_conf
             } else {
                 import_conf
@@ -358,12 +358,7 @@ fn queue_frames(mut queue: HashMap<String, Vec<Vec<String>>>,
         }
 
         //add the new timestep
-        println!("the keys in the conf are {:?}", agent_conf.pairs);
-        println!("the keys in the frame are {:?}", &frame.keys());
-        //the error happens here in
         let writeVEC = arrange_vec(&frame[&key], &timestamp);
-        println!("the error happens after this");
-
         queue.entry(key).and_modify(|timesteps| {
             //this make sure not to push if the current frame is non interval    
             if *timestamp as i64 % agent_conf.interval == 0 {
@@ -371,6 +366,7 @@ fn queue_frames(mut queue: HashMap<String, Vec<Vec<String>>>,
             }
             
         });
+
     }
 
     queue
@@ -1464,24 +1460,40 @@ mod tests {
                                             ].iter().cloned().collect();
 
         let mut queue = HashMap::new();
-        let (mini_frame, timestamp) = get_many_fake_frames();
-        let frame = mini_struct_to_full_struct(mini_frame);
-        queue = queue_frames(queue, &frame, &timestamp);
 
-        let returned_vec: HashSet<String> = queue.keys().map(|key| key.to_owned()).collect();
-        if returned_vec == expect_vec {
-            //this worked with no changes to queue_frames
-            clean_up_confs();
-            return Ok(());
-        } else {
-            println!("queue frames did not return to correct pairs when given valid pairs and an overly small duration \n it returned {:?}", returned_vec);
-            clean_up_confs();
-            return Err(());
+        for _each in 0..21 {
+            let (mini_frame, timestamp) = get_many_fake_frames();
+            let frame = mini_struct_to_full_struct(mini_frame);
+            queue = queue_frames(queue, &frame, &timestamp);
         }
+
+        let mut error_count = 0;
+        let returned_vec: HashSet<String> = queue.keys().map(|key| key.to_owned()).collect();
+        if returned_vec != expect_vec {
+            println!("queue frames did not return to correct pairs when given valid pairs and an overly small duration \n it returned {:?}", returned_vec);
+            error_count += 1;
+        } 
+
+        let timestamp0: i64 = queue["LTCandUSD"][8][0].parse().expect("failed to parse timestamp0");
+        let timestamp1: i64 = queue["LTCandUSD"][9][0].parse().expect("failed to parse timestamp1");
+    
+        clean_up_confs();
+
+        if timestamp1 - timestamp0 != 60 {
+            println!("the queue interval did not revert 60 seconds default after being given too small an interval");
+            error_count += 1;
+        }
+
+        if error_count > 0 {
+            return Err(());
+        } else {
+            return Ok(());
+        }
+
 
     }
 
-    fn queue_frames_survives_non_interval_duration() -> Result<(), ()> {
+    fn queue_frames_survives_impossible_interval() -> Result<(), ()> {
         Err(())
     }
 
@@ -1526,11 +1538,12 @@ mod tests {
 
     #[test]
     #[serial(mut_timestamp)]
-    fn queue_frames_conf_group_with_2(){
+    fn queue_frames_conf_group_with_5(){
         queue_frames_creates_conf_when_none().expect("queue_frames failed to create a blank conf file");
         queue_frames_survives_blank_conf_and_caps_at_defaults().expect("queue_frames did not use defaults when conf was blank");
         queue_frames_survives_invalid_pairs().expect("queue_frames did not revert to default when given an invalid config");
         queue_frames_returns_pairs_specified_in_conf().expect("queue_frames failed to return pairs given in a valid conf");
+        queue_frames_survives_too_small_duration().expect("queue_frames did not properly continue after being given too small a duration");
         //what is this test, does it take user input???
         //queue_frames_notifies_invalid_conf_params().expect("queue_frames failed to notify");
     }
