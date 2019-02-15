@@ -298,12 +298,12 @@ fn queue_frames(mut queue: HashMap<String, Vec<Vec<String>>>,
                 }
             }
             if import_conf.interval < 30 {
-                import_conf.interval = 60;
+                import_conf.interval = default_conf.interval.clone();
                 err_string = "used default interval, interval too small".to_owned();
                 err_count += 1;
             }
             if import_conf.interval % 30 != 0 {
-                import_conf.interval = 60;
+                import_conf.interval = default_conf.interval.clone();
                 err_string = "used default interval, interval is not divisable by 30".to_owned();
             }
             if err_count > 0 {
@@ -564,7 +564,7 @@ fn main() {
 //vecs and hashmaps all have length known, and can be defined
 
     let mut master = DB{
-        path: Some("fake_api.db".to_string()),
+        path: Some("queue_RAM.db".to_string()),
         storage_device: None
     };
 
@@ -599,7 +599,7 @@ fn main() {
         };
 
         let start = Instant::now();
-        //queue = queue_frames(queue, &frame, &timestamp);
+        queue = queue_frames(queue, &frame, &timestamp);
         let duration = start.elapsed().as_secs();
         metricVEC.push(duration);
 
@@ -621,7 +621,9 @@ fn main() {
 
         //measure(metricVEC, metrics);
         println!("{} frames captured", count +1);
-        println!("this function took {}s", metricVEC[4]);
+        println!("the get_data function took {}s", metricVEC[1]);
+        println!("the queue_frames function took {}s", metricVEC[2]);
+        println!("this write_data function took {}s", metricVEC[4]);
         count += 1;
     }
 }
