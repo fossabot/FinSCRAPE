@@ -7,6 +7,8 @@ use serde::{Deserialize, Serialize};
 
 use rusqlite::{Connection, NO_PARAMS, MappedRows, Row};
 
+use no_panic::no_panic;
+
 use std::str;
 use std::fs;
 use std::fs::File;
@@ -71,7 +73,6 @@ fn get_data() -> (HashMap<String, CryptoFiat>, u64) {
                 //this should default to a frame of default primatives if the connection times out or other
                 .expect("the request to the cryptocompare api failed")
                 .text().expect("unable to get text from the cryptocompare api response");
-
             break
         } else {
             let sleep_time = time::Duration::from_secs(1);
@@ -237,7 +238,6 @@ fn arrange_vec(pair: &CryptoFiat, timestamp: &u64) -> Vec<String> {
     writeVEC
 }
 
-#[allow(dead_code)]
 fn queue_frames(mut queue: HashMap<String, Vec<Vec<String>>>, 
                 frame: &HashMap<String, CryptoFiat>, 
                 timestamp: &u64
@@ -406,6 +406,7 @@ fn inform_agent(queue: &HashMap<String, Vec<Vec<String>>>) {
     //the agent should check every 2-5s
     //and set a third file with a read->action_complete pair of time stamps for metrics
     //set_labels()
+
 }
 */
 
@@ -910,7 +911,7 @@ mod tests {
     }
 
     #[test]
-    #[serial]
+    #[serial(mut_timestamp)]
     fn get_many_fake_frames_group_with_2() {
         //mutation/deletion of the shared file in get_many_fake_frames prevents any of these tests from being run in parallel
         get_many_fake_frames_returns_valid_data().expect("get_many_fake returned invalid data");
@@ -983,6 +984,8 @@ mod tests {
 
     #[test]
     #[ignore]
+    //this is ignored because it can take a max of 30s
+    //and because it calls a rationed api
     fn get_data_group_with_3(){
         get_data_sleeps_till_30().expect("the request did not happen on a round 30 seconds");
         get_data_creates_valid_frame().expect("get_data returned an invalid frame");
