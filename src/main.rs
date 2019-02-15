@@ -63,22 +63,11 @@ fn notify(notification: &Notify) {
 
 }
 
-fn get_data() -> (HashMap<String, CryptoFiat>, u64) {
-    let mut json = "".to_string();
-    let mut timestamp = 0;
-    loop {
-        timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs();
-        if timestamp % 30 == 0 {
-            json = reqwest::get("https://min-api.cryptocompare.com/data/pricemultifull?fsyms=BTC,ETH,BCH,LTC,EOS,BNB,XMR,DASH,VEN,NEO,ETC,ZEC,WAVES,BTG,DCR,REP,GNO,MCO,FCT,HSR,DGD,XZC,VERI,PART,GAS,ZEN,GBYTE,BTCD,MLN,XCP,XRP,MAID&tsyms=USD&api_key={6cbc5ffe92ca7113e33a5f379e8d73389d6f8a1ba30d10a003135826b0f64815}")
-                //this should default to a frame of default primatives if the connection times out or other
-                .expect("the request to the cryptocompare api failed")
-                .text().expect("unable to get text from the cryptocompare api response");
-            break
-        } else {
-            let sleep_time = time::Duration::from_secs(1);
-            thread::sleep(sleep_time);
-        }
-    }
+fn get_data() -> (HashMap<String, CryptoFiat>) {
+    let json = reqwest::get("https://min-api.cryptocompare.com/data/pricemultifull?fsyms=BTC,ETH,BCH,LTC,EOS,BNB,XMR,DASH,VEN,NEO,ETC,ZEC,WAVES,BTG,DCR,REP,GNO,MCO,FCT,HSR,DGD,XZC,VERI,PART,GAS,ZEN,GBYTE,BTCD,MLN,XCP,XRP,MAID&tsyms=USD&api_key={6cbc5ffe92ca7113e33a5f379e8d73389d6f8a1ba30d10a003135826b0f64815}")
+        //this should default to a frame of default primatives if the connection times out or other
+        .expect("the request to the cryptocompare api failed")
+        .text().expect("unable to get text from the cryptocompare api response");
 
     let mut frame = HashMap::new();
     let data: Value = serde_json::from_str(&json).expect("unable to convert response text to untyped object");
@@ -91,7 +80,7 @@ fn get_data() -> (HashMap<String, CryptoFiat>, u64) {
         }
     }
 
-    (frame, timestamp)
+    frame
 
 }
 
@@ -588,17 +577,26 @@ fn main() {
 
     let mut count = 0;
 
-    loop{
+    'main: loop{
         let mut metricVEC: Vec<u64> = vec![];
         let start = Instant::now();
         //set_disk(&master, &metrics);
         let duration = start.elapsed().as_secs();
         metricVEC.push(duration);
 
-        let start = Instant::now();
-        let (frame, timestamp) = get_data();
-        let duration = start.elapsed().as_secs();
-        metricVEC.push(duration);
+        let (frame, timestamp) = 'wait: loop {
+            let timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs();
+            if timestamp % 30 == 0 {
+                let start = Instant::now();
+                let frame = get_data();
+                let duration = start.elapsed().as_secs();
+                metricVEC.push(duration);
+                break 'wait (frame, timestamp)
+            } else {
+                let sleep_time = time::Duration::from_secs(1);
+                thread::sleep(sleep_time);
+            }
+        };
 
         let start = Instant::now();
         //queue = queue_frames(queue, &frame, &timestamp);
@@ -947,18 +945,8 @@ mod tests {
     }
     */
 
-
-    fn get_data_sleeps_till_30() -> Result<(), ()>{
-        let (frame, timestamp) = get_data();
-        if timestamp % 30 == 0 {
-            Ok(())
-        } else {
-            Err(())
-        }
-    }
-
     fn get_data_creates_valid_frame() -> Result<(), ()> {
-        let (frame, timestamp) = get_data();
+        let frame = get_data();
         if frame["BTCandUSD"].crypto_symbol == "BTC" &&
            frame["BTCandUSD"].fiat_symbol == "USD"
         {
@@ -970,7 +958,7 @@ mod tests {
     }
 
     fn get_data_frame_has_all_crypto() -> Result<(), ()> {
-        let (frame, timestamp) = get_data();
+        let frame = get_data();
         if frame.len() == 32 {
             Ok(())
         } else {
@@ -978,7 +966,11 @@ mod tests {
         }
     }
 
-    fn get_data_survives_bad_connection_and_api() -> Result<(),()> {
+    fn get_data_survives_bad_connection() -> Result<(),()> {
+        Err(())
+    }
+
+    fn get_data_survives_bad_data() -> Result<(), ()> {
         Err(())
     }
 
@@ -987,7 +979,6 @@ mod tests {
     //this is ignored because it can take a max of 30s
     //and because it calls a rationed api
     fn get_data_group_with_3(){
-        get_data_sleeps_till_30().expect("the request did not happen on a round 30 seconds");
         get_data_creates_valid_frame().expect("get_data returned an invalid frame");
         get_data_frame_has_all_crypto().expect("frame does not contain enough crypto-USD pairs");
     }
