@@ -30,7 +30,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
  #[allow(bad_style)]
 
-/* 9th
+/*
 fn set_disk(mut master: &DB, mut metrics: &DB) {
     //check conf file for current master dir in binary directory
     //get a list of storage devices
@@ -50,18 +50,11 @@ fn set_disk(mut master: &DB, mut metrics: &DB) {
 }
 */
 
-//this is pretest
+/*
 fn notify(notification: &Notify) {
-    //this will send emails or other correspondence to the operator
-    match notification {
-        Notify::ChangedDB(info) => println!("the DB has been changed to: {}", info),
-        Notify::FirstWrite(timestamp) => println!("the new DB has been written to at: {}", timestamp),
-        Notify::LowStorage(info) => println!("the storage is low on this volume: {}", info),
-        Notify::ChangedConfig(config) => println!("the config has successfully been changed to: {}", config),
-        Notify::InvalidConfig(config) => println!("reverting to previous config, new config failed to parse: {}", config)
-    }
 
 }
+*/
 
 fn get_data() -> (HashMap<String, CryptoFiat>) {
     //put the data returned from the api into a string variable
@@ -381,7 +374,7 @@ fn queue_frames(mut queue: HashMap<String, Vec<Vec<String>>>,
 }
 
 
-/* 5th
+/*
 fn measure(metricVEC: Vec<u64>, master: DB) {
     //i have a hypotheis that the writing will be faster using a usb hdd over the sdcard or usb drive in the pi
     //for each write do checks if master, table, etc exist
@@ -407,7 +400,7 @@ fn measure(metricVEC: Vec<u64>, master: DB) {
 }
 */
 
-/* 6th
+/*
 fn inform_agent(queue: &HashMap<String, Vec<Vec<String>>>) {
     //this should write a csv file named by each key in queue
     //write hardcoded header
@@ -420,7 +413,7 @@ fn inform_agent(queue: &HashMap<String, Vec<Vec<String>>>) {
 }
 */
 
-/* 7th
+/*
 fn get_agent_metrics() {
     //this will read the agent's read->action_complete timestamps and replace the previous ones
     //the agent's metric file should have headings framestamp, duration
