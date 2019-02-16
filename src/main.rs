@@ -237,7 +237,8 @@ fn queue_frames(mut queue: HashMap<String, Vec<Vec<String>>>,
         Err(_) => {
             let file = File::create("agent_conf.txt").expect("failed to create conf file in queue_frames");
             file.sync_all().expect("failed to sync changes after creating conf in queue_frames");
-            },
+        },
+
         Ok(_) => ()
     };
 
@@ -314,10 +315,9 @@ fn queue_frames(mut queue: HashMap<String, Vec<Vec<String>>>,
 
             if err_count > 0 {
                 println!("{}", err_string);
-                import_conf
-            } else {
-                import_conf
             }
+
+            import_conf
         },
 
         Err(err) => {println!("used default_conf, error was {}", err); default_conf},
@@ -329,7 +329,7 @@ fn queue_frames(mut queue: HashMap<String, Vec<Vec<String>>>,
         queue.entry(pair.to_string()).or_insert(timesteps);
     }
     
-    //this does the add/remove mutation business
+    //this adds, removes or skips frames based on the current configuration
     for pair in queue.clone() {
         let key = pair.0.to_string();
 
@@ -348,6 +348,7 @@ fn queue_frames(mut queue: HashMap<String, Vec<Vec<String>>>,
             } else {
                 difference = queue[&key].len() as i64 - agent_conf.window;
             }
+
             //front pop all entries that are over the configured window size
             let range = std::ops::Range{start: 0, end: difference};
             for _each in range {
@@ -357,16 +358,13 @@ fn queue_frames(mut queue: HashMap<String, Vec<Vec<String>>>,
             }
         }
 
-        //add the new timestep
-        let writeVEC = arrange_vec(&frame[&key], &timestamp);
-        queue.entry(key).and_modify(|timesteps| {
-            //this make sure not to push if the current frame is non interval    
-            if *timestamp as i64 % agent_conf.interval == 0 {
-                timesteps.push(writeVEC);
-            }
-            
-        });
-
+        //add or skip the new frame depending on the interval size
+        if *timestamp as i64 % agent_conf.interval == 0 {
+            let writeVEC = arrange_vec(&frame[&key], &timestamp);
+            queue.entry(key).and_modify(|timesteps| {
+                timesteps.push(writeVEC);                
+            });
+        }
     }
 
     queue
