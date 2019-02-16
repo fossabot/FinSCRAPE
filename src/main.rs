@@ -231,9 +231,10 @@ fn arrange_vec(pair: &CryptoFiat, timestamp: &u64) -> Vec<String> {
 }
 
 fn queue_frames(mut queue: HashMap<String, Vec<Vec<String>>>, 
-                frame: &HashMap<String, CryptoFiat>, 
-                timestamp: &u64
-                ) -> HashMap<String, Vec<Vec<String>>> {
+                                frame: &HashMap<String, CryptoFiat>, 
+                                timestamp: &u64
+                                ) -> HashMap<String, Vec<Vec<String>>> 
+{
 
     //create configuration file if none
     match File::open("agent_conf.txt") {
