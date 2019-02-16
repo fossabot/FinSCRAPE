@@ -374,6 +374,7 @@ fn queue_frames(mut queue: HashMap<String, Vec<Vec<String>>>,
 
 /* 5th
 fn measure(metricVEC: Vec<u64>, master: DB) {
+    //i have a hypotheis that the writing will be faster using a usb hdd over the sdcard or usb drive in the pi
     //for each write do checks if master, table, etc exist
     //that way if the disk is changed it can write a new master
     //rather than loosing a row
@@ -383,6 +384,17 @@ fn measure(metricVEC: Vec<u64>, master: DB) {
 
     //another rust script could be created which goes over the metrics database
     //and notifies if things get out of bounds or exceed expectations (usually not for free)
+
+    //heap and stack size can be gotten by 
+    //greping the output of ps a for FinSCRAPE
+    //collecting all the chars of the first line till a space (dont collect that)
+    //greping /proc/{process number collected}/maps for "[heap]" and then "[stack]"
+    //collecting the first line till a space (dont collect that)
+    //splitting that at a "-"
+    //int both hex values  you get
+    //second int minus first int
+    //this should be done before and after each function just like the time
+    and should be signed to show if memory was allocated or deallocated vs the last check
 }
 */
 
@@ -562,6 +574,10 @@ struct Configuration {
 fn main() {
 //perf: keys can be str, 
 //vecs and hashmaps all have length known, and can be defined
+//we stop allocating memory after the frame window is hit as expected
+//each frame added to the queue weighs about 120kb
+//during an arbitrary measurement sometime after 70 frames
+//the stack was had 7790592 less addresses than the heap
 
     let mut master = DB{
         path: Some("queue_RAM.db".to_string()),
@@ -1542,6 +1558,10 @@ mod tests {
         } else {
             return Ok(());
         }
+    }
+
+    fn queue_frames_default_when_window_over_2_days() -> Result<(), ()> {
+        Err(())
     }
 
     fn queue_frames_removes_many_when_interval_is_changed() -> Result<(),()> {
