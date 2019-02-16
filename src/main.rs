@@ -1609,6 +1609,10 @@ mod tests {
         }
     }
 
+    fn queue_frames_removes_keys_when_pairs_are_changed() -> Result<(),()> {
+        Err(())
+    }
+
     fn queue_frames_notifies_invalid_conf_params() -> Result<(), ()> {
         Err(())
     }
