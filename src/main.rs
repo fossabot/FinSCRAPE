@@ -582,7 +582,7 @@ fn main() {
 //the stack was had 7790592 less addresses than the heap
 
     let mut master = DB{
-        path: Some("queue_RAM.db".to_string()),
+        path: Some("unknown_test.db".to_string()),
         storage_device: None
     };
 
@@ -597,18 +597,22 @@ fn main() {
 
     'main: loop{
         let mut metricVEC: Vec<u64> = vec![];
+
         let start = Instant::now();
         //set_disk(&master, &metrics);
         let duration = start.elapsed().as_secs();
         metricVEC.push(duration);
 
+        //only get_data on 30s divisable timestamp
         let (frame, timestamp) = 'wait: loop {
             let timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs();
             if timestamp % 30 == 0 {
+
                 let start = Instant::now();
                 let frame = get_data();
                 let duration = start.elapsed().as_secs();
                 metricVEC.push(duration);
+
                 break 'wait (frame, timestamp)
             } else {
                 let sleep_time = time::Duration::from_secs(1);
@@ -627,7 +631,7 @@ fn main() {
         metricVEC.push(duration);
 
         let start = Instant::now();
-        //this takes 9s for create and write, 3s for write
+        //this takes 9s for create and write, 3s-15s for write
         write_data(&frame, &timestamp, &master);
         let duration = start.elapsed().as_secs();
         metricVEC.push(duration);
@@ -641,7 +645,7 @@ fn main() {
         println!("{} frames captured", count +1);
         println!("the get_data function took {}s", metricVEC[1]);
         println!("the queue_frames function took {}s", metricVEC[2]);
-        println!("this write_data function took {}s", metricVEC[4]);
+        println!("the write_data function took {}s", metricVEC[4]);
         count += 1;
     }
 }
