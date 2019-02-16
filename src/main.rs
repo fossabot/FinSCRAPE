@@ -1478,7 +1478,7 @@ mod tests {
         }
     }
 
-    fn queue_frames_survives_too_small_duration() -> Result<(), ()> {
+    fn queue_frames_survives_too_small_interval() -> Result<(), ()> {
         clean_up_confs();
         let mut file = File::create("agent_conf.txt").expect("failed to create agent_conf.txt");
         file.write(&"{\n    \"pairs\": [\n                  \"LTCandUSD\",\n                  \"MAIDandUSD\"\n],\n    \"window\": 60,\n    \"interval\": 15,\n    \"path\": \"/agent_output/\"\n}\n".to_string().into_bytes()).expect("failed to write invalid pairs to agent_conf.txt");
@@ -1566,7 +1566,7 @@ mod tests {
         }
     }
 
-    fn queue_frames_default_when_window_over_2_days() -> Result<(), ()> {
+    fn queue_frames_defaults_when_window_over_2_days() -> Result<(), ()> {
         Err(())
     }
 
@@ -1660,7 +1660,7 @@ mod tests {
         queue_frames_survives_blank_conf_and_caps_at_defaults().expect("queue_frames did not use defaults when conf was blank");
         queue_frames_survives_invalid_pairs().expect("queue_frames did not revert to default when given an invalid config");
         queue_frames_returns_pairs_specified_in_conf().expect("queue_frames failed to return pairs given in a valid conf");
-        queue_frames_survives_too_small_duration().expect("queue_frames did not properly continue after being given too small a duration");
+        queue_frames_survives_too_small_interval().expect("queue_frames did not properly continue after being given too small a duration");
         queue_frames_survives_impossible_interval().expect("queue_frames did not continue after being given an interval not divisable by 30");
         queue_frames_removes_many_when_interval_is_changed().expect("queue_frames did not remove the non interval frames after the interval was changed");
     
