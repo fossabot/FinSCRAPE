@@ -64,15 +64,19 @@ fn notify(notification: &Notify) {
 }
 
 fn get_data() -> (HashMap<String, CryptoFiat>) {
+    //put the data returned from the api into a string variable
     let json = reqwest::get("https://min-api.cryptocompare.com/data/pricemultifull?fsyms=BTC,ETH,BCH,LTC,EOS,BNB,XMR,DASH,VEN,NEO,ETC,ZEC,WAVES,BTG,DCR,REP,GNO,MCO,FCT,HSR,DGD,XZC,VERI,PART,GAS,ZEN,GBYTE,BTCD,MLN,XCP,XRP,MAID&tsyms=USD&api_key={6cbc5ffe92ca7113e33a5f379e8d73389d6f8a1ba30d10a003135826b0f64815}")
-        //this should default to a frame of default primatives if the connection times out or other
         .expect("the request to the cryptocompare api failed")
         .text().expect("unable to get text from the cryptocompare api response");
 
     let mut frame = HashMap::new();
+
+    //preliminarily deselialize the json so that the pair keys are accessible
     let data: Value = serde_json::from_str(&json).expect("unable to convert response text to untyped object");
     let object = data.as_object().expect("unable to convert outer values to map");
     let object = object["RAW"].as_object().expect("unable to convert inner values to map");
+
+    //serialize each crypto-fiat pair into a typed struct
     for crypto in object.keys() {
         for fiat in object[crypto].as_object().unwrap().keys() {
             let pair_block: CryptoFiat = serde_json::from_value(object[crypto][fiat].clone()).expect("failed to convert untyped map to typed struct");
