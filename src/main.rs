@@ -232,6 +232,7 @@ fn queue_frames(mut queue: HashMap<String, Vec<Vec<String>>>,
                 timestamp: &u64
                 ) -> HashMap<String, Vec<Vec<String>>> {
 
+    //create configuration file if none
     match File::open("agent_conf.txt") {
         Err(_) => {
             let file = File::create("agent_conf.txt").expect("failed to create conf file in queue_frames");
@@ -239,7 +240,8 @@ fn queue_frames(mut queue: HashMap<String, Vec<Vec<String>>>,
             },
         Ok(_) => ()
     };
-    //default conf
+
+    //initialize the default conf
     let default_conf = Configuration {
         pairs: vec![
                         "BCHandUSD".to_string(),
@@ -281,31 +283,35 @@ fn queue_frames(mut queue: HashMap<String, Vec<Vec<String>>>,
         path: "".to_string()
     };
 
+    //read the configuration from the file
     let conf_json = fs::read_to_string("agent_conf.txt").expect("failed to read conf");
 
-    //this should set to default in any case of malformed conf
+    //attempt to parse and sanity check the configuration, setting default values if conf is insane
     let agent_conf: Configuration = match serde_json::from_str(&conf_json) {
         Ok(conf) =>  {
             let mut import_conf: Configuration = conf;
             let mut err_count = 0;
             let mut err_string = "".to_owned();
+
             for pair in &import_conf.clone().pairs {
-                //check if the conf contains impossible pair keys
                 if !&frame.contains_key(pair){
                     import_conf.pairs = default_conf.pairs.clone();
                     err_string = "used default pairs, bad pair".to_owned();
                     err_count += 1;
                 }
             }
+
             if import_conf.interval < 30 {
                 import_conf.interval = default_conf.interval.clone();
                 err_string = "used default interval, interval too small".to_owned();
                 err_count += 1;
             }
+
             if import_conf.interval % 30 != 0 {
                 import_conf.interval = default_conf.interval.clone();
                 err_string = "used default interval, interval is not divisable by 30".to_owned();
             }
+
             if err_count > 0 {
                 println!("{}", err_string);
                 import_conf
@@ -313,16 +319,11 @@ fn queue_frames(mut queue: HashMap<String, Vec<Vec<String>>>,
                 import_conf
             }
         },
+
         Err(err) => {println!("used default_conf, error was {}", err); default_conf},
     };
 
-    //here is where we would check the well formed conf for validity
-    //            window should be greater than 0 and present
-    //        interval should be greater than 30, mulitple of 30 and present
-     //       paires should be present, and len greater than 0
-
-
-    //this inserts a key and a blank timestep vec if there are none
+    //this inserts each pair that is requested and a blank timestep vec if there are none
     for pair in &agent_conf.pairs {
         let mut timesteps = vec![];
         queue.entry(pair.to_string()).or_insert(timesteps);
