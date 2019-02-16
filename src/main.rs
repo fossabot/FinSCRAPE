@@ -89,6 +89,7 @@ fn write_data(frame: &HashMap<String, CryptoFiat>, timestamp: &u64, master: &DB)
     let db_path = db_path.unwrap();
     let storage = Connection::open(db_path).expect("failed to open or create master");
     
+    //create a table for each pair
     for table_name in frame.keys() {
             let table_statement = format!("CREATE TABLE IF NOT EXISTS {} (
                     timestamp              INTERGER NOT NULL,
@@ -121,8 +122,11 @@ fn write_data(frame: &HashMap<String, CryptoFiat>, timestamp: &u64, master: &DB)
                     high_24_hour    REAL NOT NULL,
                     low_24_hour    REAL NOT NULL
                   )", table_name);
+
             storage.execute(&table_statement, NO_PARAMS).expect("failed to create table");
     }
+
+    //writes the latest frame far each pair to each pair's table
     for key in frame.keys(){
         let pair = &frame[key];
         let writeVEC = arrange_vec(&pair, &timestamp);
@@ -188,8 +192,10 @@ fn write_data(frame: &HashMap<String, CryptoFiat>, timestamp: &u64, master: &DB)
                         ?29
                     )", key
             );
+            
             storage.execute(&table_statement, writeVEC).expect("failed to write to master");
     }
+
     storage.close().expect("failed to close the db");
 }
 
