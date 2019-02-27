@@ -616,7 +616,7 @@ fn main() {
 
                 break 'wait (frame, timestamp)
             } else {
-                let sleep_time = time::Duration::from_secs(1);
+                let sleep_time = time::Duration::from_secs(0.5);
                 thread::sleep(sleep_time);
             }
         };
