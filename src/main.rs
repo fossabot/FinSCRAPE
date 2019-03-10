@@ -411,7 +411,7 @@ fn get_agent_conf(frame: &HashMap<String, CryptoFiat>) -> Configuration {
 }
 
 
-fn inform_agent(queue: &HashMap<String, Vec<Vec<String>>>) {
+fn inform_agent(queue: &HashMap<String, Vec<Vec<String>>>, agent_conf: &Configuration) {
     //this should write a csv file named by each key in queue
     //write hardcoded header
     //one writevec per line following that, comma seperated per index
@@ -419,6 +419,19 @@ fn inform_agent(queue: &HashMap<String, Vec<Vec<String>>>) {
     //the agent should check every 2-5s
     //and set a third file with a read->action_complete pair of time stamps for metrics
     //set_labels()
+    fs::create_dir_all(&agent_conf.path).expect("failed to create directory");
+
+    for pair in queue.keys() {
+        match File::open(format!("{}{}.txt", &agent_conf.path, pair)) {
+            Err(_) => {
+                let file = File::create(format!("{}{}.txt", &agent_conf.path, pair)).expect("failed to create output file in inform_agent");
+                file.sync_all().expect("failed to sync changes after creating output file in inform_agent");
+            },
+
+            Ok(_) => ()
+    };
+
+    }
 
 }
 
@@ -641,7 +654,7 @@ fn main() {
         metricVEC.push(duration);
 
         let start = Instant::now();
-        //inform_agent(&queue);
+        //inform_agent(&queue, &agent_conf);
         let duration = start.elapsed().as_secs();
         metricVEC.push(duration);
 
@@ -1009,6 +1022,7 @@ mod tests {
                                     "ZECandUSD".to_string(),
                                     "ZENandUSD".to_string()
                                     ];
+
         for entry in WalkDir::new(".")
                 .follow_links(true)
                 .into_iter()
@@ -1022,9 +1036,8 @@ mod tests {
                     fs::remove_file(file_path.clone()).expect("failed to remove agent frame file");
                 }
             }
-
         }
-
+        //need to figure out how to remove the output dir without knowing its name and without accidentally removing neccesary dirs
     }
 
     //unit tests
@@ -1774,10 +1787,8 @@ mod tests {
         let frame = mini_struct_to_full_struct(mini_frame);
         let agent_conf = get_agent_conf(&frame);
         queue = queue_frames(queue, &frame, &timestamp, &agent_conf);
-        inform_agent(&queue);
+        inform_agent(&queue, &agent_conf);
         
-        clean_up_confs();
-
         let mut found_count = 0;
         let output_dir = fs::read_dir(agent_conf.path).expect("failed to find the agent output folder");
         for file_name in output_dir {
@@ -1792,6 +1803,9 @@ mod tests {
                 }
             }
         }
+
+        clean_up_confs();
+        clean_up_agent_output();
 
         if found_count == queue.keys().len() {
             Ok(())
