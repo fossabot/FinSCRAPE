@@ -1815,10 +1815,64 @@ mod tests {
         //look for text stuff using the conf
     }
 
+    fn inform_agent_adds_single_frame_to_each_file() -> Result<(),()> {
+        Err(())
+    }
+
+    fn inform_agent_creates_correct_column_headers() -> Result<(),()>{
+        clean_up_agent_output();
+        clean_up_confs();
+        let mut queue = HashMap::new();
+        let (mini_frame, timestamp) = get_many_fake_frames();
+        let frame = mini_struct_to_full_struct(mini_frame);
+        let agent_conf = get_agent_conf(&frame);
+        queue = queue_frames(queue, &frame, &timestamp, &agent_conf);
+        inform_agent(&queue, &agent_conf);
+        
+        let mut headers_found = 0;
+        let output_dir = fs::read_dir(agent_conf.path).expect("failed to find the agent output folder");
+        for file_name in output_dir {
+            let file_path = file_name.expect("failed to get path from file_name").path().to_owned();
+            let path_string = &file_path.to_str().expect("failed to convert path to string");
+            for pair in queue.keys() {
+                if path_string.contains(&format!("{}.txt", pair)){
+                    let actual_header = fs::read_to_string(&file_path).expect("failed to open the pair output file");
+                    let expected_header = "timestamp,last_update,price,last_market,last_volume_crypto,volume_hour_crypto,volume_day_crypto,volume_24_hour_crypto,total_volume_24_hour_crypto,last_volume_fiat,volume_hour_fiat,volume_day_fiat,volume_24_hour_fiat,total_volume_24_hour_fiat,change_day,change_pct_day,change_24_hour,change_pct_24_hour,supply,market_cap,open_hour,high_hour,low_hour,open_day,high_day,low_day,open_24_hour,high_24_hour,low_24_hour";
+                    if expected_header == actual_header {
+                        headers_found += 1;
+                    }
+                }
+            }
+        }
+
+        clean_up_confs();
+        clean_up_agent_output();
+
+        if headers_found == queue.keys().len() {
+            Ok(())
+        } else {
+            Err(())
+        }
+    }
+
+    fn inform_agent_adds_many_frames_to_each_file() -> Result<(),()> {
+        Err(())
+    }
+
+    fn inform_agent_changes_output_when_window_changes() -> Result<(), ()> {
+        Err(())
+    }
+
+    fn inform_agent_changes_output_when_interval_changes() -> Result<(), ()> {
+        Err(())
+    }
+
     #[test]
     #[serial(mut_timestamp)]
     fn inform_agent_group(){
         inform_agent_creates_file_for_each_key().expect("failed to create file for each key in queue");
+        inform_agent_creates_correct_column_headers().expect("failed to find header in one or more output files")
+        //inform_agent_adds_single_frame_to_each_file().expect("inform agent failed to add a frame to each file");
     }
 
 
