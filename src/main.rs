@@ -424,7 +424,10 @@ fn inform_agent(queue: &HashMap<String, Vec<Vec<String>>>, agent_conf: &Configur
     for pair in queue.keys() {
         match File::open(format!("{}{}.txt", &agent_conf.path, pair)) {
             Err(_) => {
-                let file = File::create(format!("{}{}.txt", &agent_conf.path, pair)).expect("failed to create output file in inform_agent");
+                let mut file = File::create(format!("{}{}.txt", &agent_conf.path, pair)).expect("failed to create output file in inform_agent");
+                //this could use a var which contains all the columns and is used in write_data
+                file.write(b"timestamp,last_update,price,last_market,last_volume_crypto,volume_hour_crypto,volume_day_crypto,volume_24_hour_crypto,total_volume_24_hour_crypto,last_volume_fiat,volume_hour_fiat,volume_day_fiat,volume_24_hour_fiat,total_volume_24_hour_fiat,change_day,change_pct_day,change_24_hour,change_pct_24_hour,supply,market_cap,open_hour,high_hour,low_hour,open_day,high_day,low_day,open_24_hour,high_24_hour,low_24_hour")
+                    .expect("failed to write headers to file");
                 file.sync_all().expect("failed to sync changes after creating output file in inform_agent");
             },
 
@@ -1816,7 +1819,41 @@ mod tests {
     }
 
     fn inform_agent_adds_single_frame_to_each_file() -> Result<(),()> {
-        Err(())
+        clean_up_agent_output();
+        clean_up_confs();
+        let mut queue = HashMap::new();
+        let (mini_frame, timestamp) = get_many_fake_frames();
+        let frame = mini_struct_to_full_struct(mini_frame);
+        let agent_conf = get_agent_conf(&frame);
+        queue = queue_frames(queue, &frame, &timestamp, &agent_conf);
+        inform_agent(&queue, &agent_conf);
+        
+        let mut frames_found = 0;
+        let output_dir = fs::read_dir(agent_conf.path).expect("failed to find the agent output folder");
+        for file_name in output_dir {
+            let file_path = file_name.expect("failed to get path from file_name").path().to_owned();
+            let path_string = &file_path.to_str().expect("failed to convert path to string");
+            for pair in queue.keys() {
+                if path_string.contains(&format!("{}.txt", pair)){
+                    let actual_contents = fs::read_to_string(&file_path).expect("failed to open the pair output file");
+                    //this may not be the correct first frame the fake_frames func will offer from the DB
+                    let expected_contents = "timestamp,last_update,price,last_market,last_volume_crypto,volume_hour_crypto,volume_day_crypto,volume_24_hour_crypto,total_volume_24_hour_crypto,last_volume_fiat,volume_hour_fiat,volume_day_fiat,volume_24_hour_fiat,total_volume_24_hour_fiat,change_day,change_pct_day,change_24_hour,change_pct_24_hour,supply,market_cap,open_hour,high_hour,low_hour,open_day,high_day,low_day,open_24_hour,high_24_hour,low_24_hour\n
+                                                                1548299370,1548299362,3562.85,Coinbase,0.0308589,51.3285538611,2824.92104237577,35966.4076935693,289112.52395416,109.46269008,182867.531868252,10066512.8827685,128719643.787297,1030641284.10634,-9.20000000000027,-0.257555185397748,-36.2800000000002,-1.00802138294533,17497875.0,62342303943.75,3562.4,3563.38,3562.09,3572.05,3575.02,3552.75,3599.13,3629.33,3538.78";
+                    if expected_contents == actual_contents {
+                        frames_found += 1;
+                    }
+                }
+            }
+        }
+
+        clean_up_confs();
+        clean_up_agent_output();
+
+        if frames_found == queue.keys().len() {
+            Ok(())
+        } else {
+            Err(())
+        }
     }
 
     fn inform_agent_creates_correct_column_headers() -> Result<(),()>{
@@ -1871,8 +1908,8 @@ mod tests {
     #[serial(mut_timestamp)]
     fn inform_agent_group(){
         inform_agent_creates_file_for_each_key().expect("failed to create file for each key in queue");
-        inform_agent_creates_correct_column_headers().expect("failed to find header in one or more output files")
-        //inform_agent_adds_single_frame_to_each_file().expect("inform agent failed to add a frame to each file");
+        inform_agent_creates_correct_column_headers().expect("failed to find header in one or more output files");
+        inform_agent_adds_single_frame_to_each_file().expect("inform agent failed to add a frame to each file");
     }
 
 
