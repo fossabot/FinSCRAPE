@@ -1817,6 +1817,10 @@ mod tests {
         //look for text stuff using the conf
     }
 
+    fn inform_agent_survives_no_frames() -> Result<(),()> {
+        Err(())
+    }
+
     fn inform_agent_adds_single_frame_to_each_file() -> Result<(),()> {
         clean_up_agent_output();
         clean_up_confs();
@@ -1824,7 +1828,13 @@ mod tests {
         let (mini_frame, timestamp) = get_many_fake_frames();
         let frame = mini_struct_to_full_struct(mini_frame);
         let agent_conf = get_agent_conf(&frame);
-        queue = queue_frames(queue, &frame, &timestamp, &agent_conf);
+        clean_up_confs();
+
+        for _each in 0..2 {
+            let (mini_frame, timestamp) = get_many_fake_frames();
+            let frame = mini_struct_to_full_struct(mini_frame);
+            queue = queue_frames(queue, &frame, &timestamp, &agent_conf);
+        }
         inform_agent(&queue, &agent_conf);
         
         let mut frames_found = 0;
