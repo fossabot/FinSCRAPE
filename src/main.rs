@@ -430,9 +430,8 @@ fn inform_agent(queue: &HashMap<String, Vec<Vec<String>>>, agent_conf: &Configur
                     .expect("failed to write headers to file");
                 file.sync_all().expect("failed to sync changes after creating output file in inform_agent");
             },
-
             Ok(_) => ()
-    };
+        };
 
     }
 
@@ -1836,9 +1835,9 @@ mod tests {
             for pair in queue.keys() {
                 if path_string.contains(&format!("{}.txt", pair)){
                     let actual_contents = fs::read_to_string(&file_path).expect("failed to open the pair output file");
-                    //this may not be the correct first frame the fake_frames func will offer from the DB
+                    //on 60s interval the third db entry should be the correct frame
                     let expected_contents = "timestamp,last_update,price,last_market,last_volume_crypto,volume_hour_crypto,volume_day_crypto,volume_24_hour_crypto,total_volume_24_hour_crypto,last_volume_fiat,volume_hour_fiat,volume_day_fiat,volume_24_hour_fiat,total_volume_24_hour_fiat,change_day,change_pct_day,change_24_hour,change_pct_24_hour,supply,market_cap,open_hour,high_hour,low_hour,open_day,high_day,low_day,open_24_hour,high_24_hour,low_24_hour\n
-                                                                1548299370,1548299362,3562.85,Coinbase,0.0308589,51.3285538611,2824.92104237577,35966.4076935693,289112.52395416,109.46269008,182867.531868252,10066512.8827685,128719643.787297,1030641284.10634,-9.20000000000027,-0.257555185397748,-36.2800000000002,-1.00802138294533,17497875.0,62342303943.75,3562.4,3563.38,3562.09,3572.05,3575.02,3552.75,3599.13,3629.33,3538.78";
+                                                                1548299400,1548299386,3563.05,Coinbase,2.27028,55.1195952011,2828.71208371577,35970.1987349093,289160.164580949,8053.137216,196314.899928983,10079960.2508292,128733091.155358,1030861598.96309,-9.0,-0.251956159628225,-36.1399999999999,-1.0041148147222,17497875.0,62345803518.75,3562.4,3563.38,3562.09,3572.05,3575.02,3552.75,3599.19,3629.82,3538.96";
                     if expected_contents == actual_contents {
                         frames_found += 1;
                     }
@@ -1847,7 +1846,7 @@ mod tests {
         }
 
         clean_up_confs();
-        clean_up_agent_output();
+        //clean_up_agent_output();
 
         if frames_found == queue.keys().len() {
             Ok(())
