@@ -9,6 +9,8 @@ use rusqlite::{Connection, NO_PARAMS, MappedRows, Row};
 
 use no_panic::no_panic;
 
+use walkdir::WalkDir;
+
 use std::str;
 use std::fs;
 use std::fs::File;
@@ -232,100 +234,14 @@ fn arrange_vec(pair: &CryptoFiat, timestamp: &u64) -> Vec<String> {
 
 fn queue_frames(mut queue: HashMap<String, Vec<Vec<String>>>, 
                                 frame: &HashMap<String, CryptoFiat>, 
-                                timestamp: &u64
+                                timestamp: &u64,
+                                agent_conf: &Configuration,
                                 ) -> HashMap<String, Vec<Vec<String>>> 
 {
 
     //create configuration file if none
-    match File::open("agent_conf.txt") {
-        Err(_) => {
-            let file = File::create("agent_conf.txt").expect("failed to create conf file in queue_frames");
-            file.sync_all().expect("failed to sync changes after creating conf in queue_frames");
-        },
+    
 
-        Ok(_) => ()
-    };
-
-    //initialize the default conf
-    let default_conf = Configuration {
-        pairs: vec![
-                        "BCHandUSD".to_string(),
-                        "BNBandUSD".to_string(),
-                        "BTCDandUSD".to_string(),
-                        "BTCandUSD".to_string(),
-                        "BTGandUSD".to_string(),
-                        "DASHandUSD".to_string(),
-                        "DCRandUSD".to_string(),
-                        "DGDandUSD".to_string(),
-                        "EOSandUSD".to_string(),
-                        "ETCandUSD".to_string(),
-                        "ETHandUSD".to_string(),
-                        "FCTandUSD".to_string(),
-                        "GASandUSD".to_string(),
-                        "GBYTEandUSD".to_string(),
-                        "GNOandUSD".to_string(),
-                        "HSRandUSD".to_string(),
-                        "LTCandUSD".to_string(),
-                        "MAIDandUSD".to_string(),
-                        "MCOandUSD".to_string(),
-                        "MLNandUSD".to_string(),
-                        "NEOandUSD".to_string(),
-                        "PARTandUSD".to_string(),
-                        "REPandUSD".to_string(),
-                        "VENandUSD".to_string(),
-                        "VERIandUSD".to_string(),
-                        "WAVESandUSD".to_string(),
-                        "XCPandUSD".to_string(),
-                        "XMRandUSD".to_string(),
-                        "XRPandUSD".to_string(),
-                        "XZCandUSD".to_string(),
-                        "ZECandUSD".to_string(),
-                        "ZENandUSD".to_string()
-                    ], 
-        window: 60, 
-        interval: 60, 
-        //this is the path of the output files for the agent not the conf file
-        path: "".to_string()
-    };
-
-    //read the configuration from the file
-    let conf_json = fs::read_to_string("agent_conf.txt").expect("failed to read conf");
-
-    //attempt to parse and sanity check the configuration, setting default values if conf is insane
-    let agent_conf: Configuration = match serde_json::from_str(&conf_json) {
-        Ok(conf) =>  {
-            let mut import_conf: Configuration = conf;
-            let mut err_count = 0;
-            let mut err_string = "".to_owned();
-
-            for pair in &import_conf.clone().pairs {
-                if !&frame.contains_key(pair){
-                    import_conf.pairs = default_conf.pairs.clone();
-                    err_string = "used default pairs, bad pair".to_owned();
-                    err_count += 1;
-                }
-            }
-
-            if import_conf.interval < 30 {
-                import_conf.interval = default_conf.interval.clone();
-                err_string = "used default interval, interval too small".to_owned();
-                err_count += 1;
-            }
-
-            if import_conf.interval % 30 != 0 {
-                import_conf.interval = default_conf.interval.clone();
-                err_string = "used default interval, interval is not divisable by 30".to_owned();
-            }
-
-            if err_count > 0 {
-                println!("{}", err_string);
-            }
-
-            import_conf
-        },
-
-        Err(err) => {println!("used default_conf, error was {}", err); default_conf},
-    };
 
     //this inserts each pair that is requested and a blank timestep vec if there are none
     for pair in &agent_conf.pairs {
@@ -401,7 +317,100 @@ fn measure(metricVEC: Vec<u64>, master: DB) {
 }
 */
 
-/*
+fn get_agent_conf(frame: &HashMap<String, CryptoFiat>) -> Configuration {
+    match File::open("agent_conf.txt") {
+        Err(_) => {
+            let file = File::create("agent_conf.txt").expect("failed to create conf file in queue_frames");
+            file.sync_all().expect("failed to sync changes after creating conf in queue_frames");
+        },
+
+        Ok(_) => ()
+    };
+
+    //initialize the default conf
+    let default_conf = Configuration {
+        pairs: vec![
+                        "BCHandUSD".to_string(),
+                        "BNBandUSD".to_string(),
+                        "BTCDandUSD".to_string(),
+                        "BTCandUSD".to_string(),
+                        "BTGandUSD".to_string(),
+                        "DASHandUSD".to_string(),
+                        "DCRandUSD".to_string(),
+                        "DGDandUSD".to_string(),
+                        "EOSandUSD".to_string(),
+                        "ETCandUSD".to_string(),
+                        "ETHandUSD".to_string(),
+                        "FCTandUSD".to_string(),
+                        "GASandUSD".to_string(),
+                        "GBYTEandUSD".to_string(),
+                        "GNOandUSD".to_string(),
+                        "HSRandUSD".to_string(),
+                        "LTCandUSD".to_string(),
+                        "MAIDandUSD".to_string(),
+                        "MCOandUSD".to_string(),
+                        "MLNandUSD".to_string(),
+                        "NEOandUSD".to_string(),
+                        "PARTandUSD".to_string(),
+                        "REPandUSD".to_string(),
+                        "VENandUSD".to_string(),
+                        "VERIandUSD".to_string(),
+                        "WAVESandUSD".to_string(),
+                        "XCPandUSD".to_string(),
+                        "XMRandUSD".to_string(),
+                        "XRPandUSD".to_string(),
+                        "XZCandUSD".to_string(),
+                        "ZECandUSD".to_string(),
+                        "ZENandUSD".to_string()
+                    ], 
+        window: 60, 
+        interval: 60, 
+        //this is the path of the output files for the agent not the conf file
+        path: "output/".to_string()
+    };
+
+    //read the configuration from the file
+    let conf_json = fs::read_to_string("agent_conf.txt").expect("failed to read conf");
+
+    //attempt to parse and sanity check the configuration, setting default values if conf is insane
+    let agent_conf: Configuration = match serde_json::from_str(&conf_json) {
+        Ok(conf) =>  {
+            let mut import_conf: Configuration = conf;
+            let mut err_count = 0;
+            let mut err_string = "".to_owned();
+
+            for pair in &import_conf.clone().pairs {
+                if !&frame.contains_key(pair){
+                    import_conf.pairs = default_conf.pairs.clone();
+                    err_string = "used default pairs, bad pair".to_owned();
+                    err_count += 1;
+                }
+            }
+
+            if import_conf.interval < 30 {
+                import_conf.interval = default_conf.interval.clone();
+                err_string = "used default interval, interval too small".to_owned();
+                err_count += 1;
+            }
+
+            if import_conf.interval % 30 != 0 {
+                import_conf.interval = default_conf.interval.clone();
+                err_string = "used default interval, interval is not divisable by 30".to_owned();
+            }
+
+            if err_count > 0 {
+                println!("{}", err_string);
+            }
+
+            import_conf
+        },
+
+        Err(err) => {println!("used default_conf, error was {}", err); default_conf},
+    };
+    agent_conf
+}
+
+
 fn inform_agent(queue: &HashMap<String, Vec<Vec<String>>>) {
     //this should write a csv file named by each key in queue
     //write hardcoded header
@@ -412,7 +421,7 @@ fn inform_agent(queue: &HashMap<String, Vec<Vec<String>>>) {
     //set_labels()
 
 }
-*/
+
 
 /*
 fn get_agent_metrics() {
@@ -622,7 +631,12 @@ fn main() {
         };
 
         let start = Instant::now();
-        queue = queue_frames(queue, &frame, &timestamp);
+        let agent_conf = get_agent_conf(&frame);
+        let duration = start.elapsed().as_secs();
+        metricVEC.push(duration);
+
+        let start = Instant::now();
+        queue = queue_frames(queue, &frame, &timestamp, &agent_conf);
         let duration = start.elapsed().as_secs();
         metricVEC.push(duration);
 
@@ -955,6 +969,64 @@ mod tests {
 
     }
 
+    fn clean_up_agent_output() {
+        //we may need to create a function get_agent_conf()
+        //because we need to use the path in agent
+        //and you cant return a mutation to queue and a new var at the same time
+        //get_agent_conf will need &frame though to allow setting which pairs are in use only once (in get_data)
+        //as opposed to having another list like the one below each time you sanity check the conf for valid pairs
+        let pairs: Vec<String> = vec![
+                                    "BCHandUSD".to_string(),
+                                    "BNBandUSD".to_string(),
+                                    "BTCDandUSD".to_string(),
+                                    "BTCandUSD".to_string(),
+                                    "BTGandUSD".to_string(),
+                                    "DASHandUSD".to_string(),
+                                    "DCRandUSD".to_string(),
+                                    "DGDandUSD".to_string(),
+                                    "EOSandUSD".to_string(),
+                                    "ETCandUSD".to_string(),
+                                    "ETHandUSD".to_string(),
+                                    "FCTandUSD".to_string(),
+                                    "GASandUSD".to_string(),
+                                    "GBYTEandUSD".to_string(),
+                                    "GNOandUSD".to_string(),
+                                    "HSRandUSD".to_string(),
+                                    "LTCandUSD".to_string(),
+                                    "MAIDandUSD".to_string(),
+                                    "MCOandUSD".to_string(),
+                                    "MLNandUSD".to_string(),
+                                    "NEOandUSD".to_string(),
+                                    "PARTandUSD".to_string(),
+                                    "REPandUSD".to_string(),
+                                    "VENandUSD".to_string(),
+                                    "VERIandUSD".to_string(),
+                                    "WAVESandUSD".to_string(),
+                                    "XCPandUSD".to_string(),
+                                    "XMRandUSD".to_string(),
+                                    "XRPandUSD".to_string(),
+                                    "XZCandUSD".to_string(),
+                                    "ZECandUSD".to_string(),
+                                    "ZENandUSD".to_string()
+                                    ];
+        for entry in WalkDir::new(".")
+                .follow_links(true)
+                .into_iter()
+                .filter_map(|result| result.ok()) {
+            let file_name = entry.file_name().to_string_lossy().into_owned();
+            let file_path = entry.path().to_owned();
+
+            //this may not work but we will try
+            for pair in pairs.clone() {
+                if file_name.contains(&format!("{}.txt", pair)){
+                    fs::remove_file(file_path.clone()).expect("failed to remove agent frame file");
+                }
+            }
+
+        }
+
+    }
+
     //unit tests
     /*
     #[test]
@@ -1003,7 +1075,7 @@ mod tests {
     #[ignore]
     //this is ignored because it can take a max of 30s
     //and because it calls a rationed api
-    fn get_data_group_with_3(){
+    fn get_data_group_with_2(){
         get_data_creates_valid_frame().expect("get_data returned an invalid frame");
         get_data_frame_has_all_crypto().expect("frame does not contain enough crypto-USD pairs");
     }
@@ -1240,7 +1312,8 @@ mod tests {
         let (mini_frame, timestamp) = get_many_fake_frames();
         let frame = mini_struct_to_full_struct(mini_frame);
         let mut queue = HashMap::new();
-        queue = queue_frames(queue, &frame, &timestamp);
+        let agent_conf = get_agent_conf(&frame);
+        queue = queue_frames(queue, &frame, &timestamp, &agent_conf);
 
         let mut table_vec: HashSet<String> = [].iter().cloned().collect();
         let expect_vec: HashSet<String> = [
@@ -1296,7 +1369,8 @@ mod tests {
         for each in 0..2 {
             let (mini_frame, timestamp) = get_many_fake_frames();
             let frame = mini_struct_to_full_struct(mini_frame);
-            queue = queue_frames(queue, &frame, &timestamp);
+            let agent_conf = get_agent_conf(&frame);
+            queue = queue_frames(queue, &frame, &timestamp, &agent_conf);
         }
 
         clean_up_confs();
@@ -1318,7 +1392,8 @@ mod tests {
         for _vec in 0..4 {
             let (mini_frame, timestamp) = get_many_fake_frames();
             let frame = mini_struct_to_full_struct(mini_frame);
-            queue = queue_frames(queue, &frame, &timestamp);
+            let agent_conf = get_agent_conf(&frame);
+            queue = queue_frames(queue, &frame, &timestamp, &agent_conf);
         }
 
         clean_up_confs();
@@ -1360,7 +1435,8 @@ mod tests {
         let (mini_frame, timestamp) = get_many_fake_frames();
         let frame = mini_struct_to_full_struct(mini_frame);
         let mut _queue = HashMap::new();
-        _queue = queue_frames(_queue, &frame, &timestamp);
+        let agent_conf = get_agent_conf(&frame);
+        _queue = queue_frames(_queue, &frame, &timestamp, &agent_conf);
 
         match File::open("agent_conf.txt") {
             Err(_) => return Err(()),
@@ -1382,7 +1458,8 @@ mod tests {
         for _each in 0..121 {
             let (mini_frame, timestamp) = get_many_fake_frames();
             let frame = mini_struct_to_full_struct(mini_frame);
-            queue = queue_frames(queue, &frame, &timestamp);
+            let agent_conf = get_agent_conf(&frame);
+            queue = queue_frames(queue, &frame, &timestamp, &agent_conf);
         }
 
         if queue["BTCandUSD"].len() != 60 {
@@ -1465,7 +1542,8 @@ mod tests {
         let mut queue = HashMap::new();
         let (mini_frame, timestamp) = get_many_fake_frames();
         let frame = mini_struct_to_full_struct(mini_frame);
-        queue = queue_frames(queue, &frame, &timestamp);
+        let agent_conf = get_agent_conf(&frame);
+        queue = queue_frames(queue, &frame, &timestamp, &agent_conf);
 
         let returned_vec: HashSet<String> = queue.keys().map(|key| key.to_owned()).collect();
         if returned_vec == expect_vec {
@@ -1495,7 +1573,8 @@ mod tests {
         for _each in 0..21 {
             let (mini_frame, timestamp) = get_many_fake_frames();
             let frame = mini_struct_to_full_struct(mini_frame);
-            queue = queue_frames(queue, &frame, &timestamp);
+            let agent_conf = get_agent_conf(&frame);
+            queue = queue_frames(queue, &frame, &timestamp, &agent_conf);
         }
 
         let mut error_count = 0;
@@ -1540,7 +1619,8 @@ mod tests {
         for _each in 0..21 {
             let (mini_frame, timestamp) = get_many_fake_frames();
             let frame = mini_struct_to_full_struct(mini_frame);
-            queue = queue_frames(queue, &frame, &timestamp);
+            let agent_conf = get_agent_conf(&frame);
+            queue = queue_frames(queue, &frame, &timestamp, &agent_conf);
         }
 
         let mut error_count = 0;
@@ -1587,7 +1667,8 @@ mod tests {
         for _each in 0..21 {
             let (mini_frame, timestamp) = get_many_fake_frames();
             let frame = mini_struct_to_full_struct(mini_frame);
-            queue = queue_frames(queue, &frame, &timestamp);
+            let agent_conf = get_agent_conf(&frame);
+            queue = queue_frames(queue, &frame, &timestamp, &agent_conf);
         }
 
         let mut file = File::create("agent_conf.txt").expect("failed to create agent_conf.txt");
@@ -1597,7 +1678,8 @@ mod tests {
         for _each in 0..20 {
             let (mini_frame, timestamp) = get_many_fake_frames();
             let frame = mini_struct_to_full_struct(mini_frame);
-            queue = queue_frames(queue, &frame, &timestamp);
+            let agent_conf = get_agent_conf(&frame);
+            queue = queue_frames(queue, &frame, &timestamp, &agent_conf);
         }
 
         let timestamp0: i64 = queue["LTCandUSD"][0][0].parse().expect("failed to parse timestamp0");
@@ -1640,7 +1722,8 @@ mod tests {
         let mut queue = HashMap::new();
         let (mini_frame, timestamp) = get_many_fake_frames();
         let frame = mini_struct_to_full_struct(mini_frame);
-        queue = queue_frames(queue, &frame, &timestamp);
+        let agent_conf = get_agent_conf(&frame);
+        queue = queue_frames(queue, &frame, &timestamp, &agent_conf);
 
         let returned_vec: HashSet<String> = queue.keys().map(|key| key.to_owned()).collect();
         if returned_vec == expect_vec {
@@ -1683,12 +1766,47 @@ mod tests {
     }
     */
 
-    /*
-    #[test]
-    fn inform_agent_group(){
-        panic!("not implemented");
+    fn inform_agent_creates_file_for_each_key() -> Result<(),()> {
+        clean_up_agent_output();
+        clean_up_confs();
+        let mut queue = HashMap::new();
+        let (mini_frame, timestamp) = get_many_fake_frames();
+        let frame = mini_struct_to_full_struct(mini_frame);
+        let agent_conf = get_agent_conf(&frame);
+        queue = queue_frames(queue, &frame, &timestamp, &agent_conf);
+        inform_agent(&queue);
+        
+        clean_up_confs();
+
+        let mut found_count = 0;
+        let output_dir = fs::read_dir(agent_conf.path).expect("failed to find the agent output folder");
+        for file_name in output_dir {
+            let name: String = file_name.expect("the pre string result which sets fileNAME has broken")
+                                .file_name()
+                                .into_string()
+                                .expect("the post string result which sets fileNAME has broken")
+                                .to_owned();
+            for pair in queue.keys() {
+                if name.contains(&format!("{}.txt", pair)){
+                    found_count += 1;
+                }
+            }
+        }
+
+        if found_count == queue.keys().len() {
+            Ok(())
+        } else {
+            Err(())
+        }
+        //look for text stuff using the conf
     }
-    */
+
+    #[test]
+    #[serial(mut_timestamp)]
+    fn inform_agent_group(){
+        inform_agent_creates_file_for_each_key().expect("failed to create file for each key in queue");
+    }
+
 
     /*
     #[test]
