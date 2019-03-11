@@ -1846,10 +1846,46 @@ mod tests {
         clean_up_confs();
 
         let mut queue = HashMap::new();
-        let (mini_frame, timestamp) = get_many_fake_frames();
-        let frame = mini_struct_to_full_struct(mini_frame);
-        let agent_conf = get_agent_conf(&frame);
-        clean_up_confs();
+        let agent_conf = Configuration {
+            pairs: vec![
+                            "BCHandUSD".to_string(),
+                            "BNBandUSD".to_string(),
+                            "BTCDandUSD".to_string(),
+                            "BTCandUSD".to_string(),
+                            "BTGandUSD".to_string(),
+                            "DASHandUSD".to_string(),
+                            "DCRandUSD".to_string(),
+                            "DGDandUSD".to_string(),
+                            "EOSandUSD".to_string(),
+                            "ETCandUSD".to_string(),
+                            "ETHandUSD".to_string(),
+                            "FCTandUSD".to_string(),
+                            "GASandUSD".to_string(),
+                            "GBYTEandUSD".to_string(),
+                            "GNOandUSD".to_string(),
+                            "HSRandUSD".to_string(),
+                            "LTCandUSD".to_string(),
+                            "MAIDandUSD".to_string(),
+                            "MCOandUSD".to_string(),
+                            "MLNandUSD".to_string(),
+                            "NEOandUSD".to_string(),
+                            "PARTandUSD".to_string(),
+                            "REPandUSD".to_string(),
+                            "VENandUSD".to_string(),
+                            "VERIandUSD".to_string(),
+                            "WAVESandUSD".to_string(),
+                            "XCPandUSD".to_string(),
+                            "XMRandUSD".to_string(),
+                            "XRPandUSD".to_string(),
+                            "XZCandUSD".to_string(),
+                            "ZECandUSD".to_string(),
+                            "ZENandUSD".to_string()
+                        ], 
+            window: 60, 
+            interval: 60, 
+            //this is the path of the output files for the agent not the conf file
+            path: "output/".to_string()
+        };
 
         for _each in 0..2 {
             let (mini_frame, timestamp) = get_many_fake_frames();
