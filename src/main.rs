@@ -409,7 +409,7 @@ fn get_agent_conf(frame: &HashMap<String, CryptoFiat>) -> Configuration {
 
 
 fn inform_agent(queue: &HashMap<String, Vec<Vec<String>>>, agent_conf: &Configuration) {
-    //this should write a csv file named by each key in queue
+     //this should write a csv file named by each key in queue
     //write hardcoded header
     //one writevec per line following that, comma seperated per index
     //using the required coin pair's csv, the agent should read these and act whenever a new timestamp is found at the last index
@@ -431,17 +431,23 @@ fn inform_agent(queue: &HashMap<String, Vec<Vec<String>>>, agent_conf: &Configur
         };
     }
 
-    if queue["BTCandUSD"].len() == 0 {
-        return
-    }
-
-    for pair in queue.keys() {
-        for timestep in queue[pair].clone(){
+    'pair: for pair in queue.keys() {
+        'timestep: for timestep in queue[pair].clone(){
+            if queue[pair].len() == 0 {
+                return
+            }
             let mut file = OpenOptions::new()
+                                                .read(true)
                                                 .append(true)
                                                 .write(true)
                                                 .open(format!("{}{}.txt", &agent_conf.path, pair))
                                                 .expect("failed to open output file a second time for appending");
+
+            let mut current_contents = String::new();
+            file.read_to_string(&mut current_contents).expect("failed to read the file into check_string");
+            if current_contents.contains(&timestep[0].to_string()) {
+                continue 'timestep;
+            }
             file.write(&format!("\n{}", &timestep.join(",")).into_bytes()).expect("failed to append frame to output file in inform_agent");
             file.sync_all().expect("failed to sync changes after appending to output file in inform_agent");
         }
@@ -1916,7 +1922,7 @@ mod tests {
         }
 
         clean_up_confs();
-        //clean_up_agent_output();
+        clean_up_agent_output();
 
         Err(())
     }
@@ -1967,7 +1973,6 @@ mod tests {
         clean_up_agent_output();
         clean_up_confs();
 
-        let mut queue = HashMap::new();
         let agent_conf = Configuration {
             pairs: vec![
                             "BCHandUSD".to_string(),
@@ -2009,10 +2014,11 @@ mod tests {
             path: "output/".to_string()
         };
 
+        let mut queue = HashMap::new();
+
         for _each in 0..4 {
             let (mini_frame, timestamp) = get_many_fake_frames();
             let frame = mini_struct_to_full_struct(mini_frame);
-            let agent_conf = get_agent_conf(&frame);
             queue = queue_frames(queue, &frame, &timestamp, &agent_conf);
             inform_agent(&queue, &agent_conf);
         }
@@ -2023,8 +2029,6 @@ mod tests {
             let path_string = &file_path.to_str().expect("failed to convert path to string");
             if path_string.contains(&"BTCandUSD.txt"){
                 let actual_contents = fs::read_to_string(&file_path).expect("failed to open the pair output file");
-                //on 60s interval the third db entry should be the correct frame
-                //don't know why I thought I was testing each file with the same string, one will probably suffice
                 let expected_contents = "timestamp,last_update,price,last_market,last_volume_crypto,volume_hour_crypto,volume_day_crypto,volume_24_hour_crypto,total_volume_24_hour_crypto,last_volume_fiat,volume_hour_fiat,volume_day_fiat,volume_24_hour_fiat,total_volume_24_hour_fiat,change_day,change_pct_day,change_24_hour,change_pct_24_hour,supply,market_cap,open_hour,high_hour,low_hour,open_day,high_day,low_day,open_24_hour,high_24_hour,low_24_hour\n1548299400,1548299386,3563.05,Coinbase,2.27028,55.11959520110003,2828.712083715772,35970.19873490927,289160.164580949,8053.137216,196314.89992898345,10079960.250829196,128733091.15535802,1030861598.96309,-9,-0.25195615962822465,-36.13999999999987,-1.004114814722198,17497875,62345803518.75,3562.4,3563.38,3562.09,3572.05,3575.02,3552.75,3599.19,3629.82,3538.96\n1548299460,1548299446,3563.22,Coinbase,0.00556621,60.15573706110003,2833.7482255757727,35975.23487676927,289356.41780837165,19.7487460937,214180.53621727673,10097825.887117485,128750956.79164632,1031603855.4371904,-8.830000000000382,-0.24719698772414667,-35.970000000000255,-0.99939152976087,17497875,62348778157.5,3562.4,3563.38,3562.09,3572.05,3575.02,3552.75,3599.19,3629.82,3538.96";
                 if expected_contents == actual_contents {
                     clean_up_confs();
