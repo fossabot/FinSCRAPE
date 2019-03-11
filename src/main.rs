@@ -83,7 +83,7 @@ fn get_data() -> (HashMap<String, CryptoFiat>) {
 
 }
 
-fn write_data(frame: &HashMap<String, CryptoFiat>, timestamp: &u64, master: &DB) {
+fn write_data(frame: &HashMap<String, CryptoFiat>, timestamp: u64, master: &DB) {
     let db_path = master.path.to_owned();
     let db_path = db_path.unwrap();
     let storage = Connection::open(db_path).expect("failed to open or create master");
@@ -128,7 +128,7 @@ fn write_data(frame: &HashMap<String, CryptoFiat>, timestamp: &u64, master: &DB)
     //writes the latest frame far each pair to each pair's table
     for key in frame.keys(){
         let pair = &frame[key];
-        let writeVEC = arrange_vec(&pair, &timestamp);
+        let write_vec = arrange_vec(&pair, &timestamp);
         let table_statement = format!("INSERT INTO {} (
                     timestamp,
                     last_update,
@@ -192,49 +192,49 @@ fn write_data(frame: &HashMap<String, CryptoFiat>, timestamp: &u64, master: &DB)
                     )", key
             );
             
-            storage.execute(&table_statement, writeVEC).expect("failed to write to master");
+            storage.execute(&table_statement, write_vec).expect("failed to write to master");
     }
 
     storage.close().expect("failed to close the db");
 }
 
 fn arrange_vec(pair: &CryptoFiat, timestamp: &u64) -> Vec<String> {    
-    let mut writeVEC: Vec<String> = vec![];
-    writeVEC.push(timestamp.to_string());
-    writeVEC.push(pair.last_update.to_string());
-    writeVEC.push(pair.price.to_string());
-    writeVEC.push(pair.last_market.to_string());
-    writeVEC.push(pair.last_volume_crypto.to_string());
-    writeVEC.push(pair.volume_hour_crypto.to_string()); 
-    writeVEC.push(pair.volume_day_crypto.to_string());
-    writeVEC.push(pair.volume_24_hour_crypto.to_string());
-    writeVEC.push(pair.total_volume_24_hour_crypto.to_string());
-    writeVEC.push(pair.last_volume_fiat.to_string());
-    writeVEC.push(pair.volume_hour_fiat.to_string());
-    writeVEC.push(pair.volume_day_fiat.to_string());
-    writeVEC.push(pair.volume_24_hour_fiat.to_string());
-    writeVEC.push(pair.total_volume_24_hour_fiat.to_string());
-    writeVEC.push(pair.change_day.to_string());
-    writeVEC.push(pair.change_pct_day.to_string());
-    writeVEC.push(pair.change_24_hour.to_string());
-    writeVEC.push(pair.change_pct_24_hour.to_string());
-    writeVEC.push(pair.supply.to_string());
-    writeVEC.push(pair.market_cap.to_string());
-    writeVEC.push(pair.open_hour.to_string());
-    writeVEC.push(pair.high_hour.to_string());
-    writeVEC.push(pair.low_hour.to_string());
-    writeVEC.push(pair.open_day.to_string());
-    writeVEC.push(pair.high_day.to_string());
-    writeVEC.push(pair.low_day.to_string());
-    writeVEC.push(pair.open_24_hour.to_string());
-    writeVEC.push(pair.high_24_hour.to_string());
-    writeVEC.push(pair.low_24_hour.to_string());
-    writeVEC
+    let mut write_vec: Vec<String> = vec![];
+    write_vec.push(timestamp.to_string());
+    write_vec.push(pair.last_update.to_string());
+    write_vec.push(pair.price.to_string());
+    write_vec.push(pair.last_market.to_string());
+    write_vec.push(pair.last_volume_crypto.to_string());
+    write_vec.push(pair.volume_hour_crypto.to_string()); 
+    write_vec.push(pair.volume_day_crypto.to_string());
+    write_vec.push(pair.volume_24_hour_crypto.to_string());
+    write_vec.push(pair.total_volume_24_hour_crypto.to_string());
+    write_vec.push(pair.last_volume_fiat.to_string());
+    write_vec.push(pair.volume_hour_fiat.to_string());
+    write_vec.push(pair.volume_day_fiat.to_string());
+    write_vec.push(pair.volume_24_hour_fiat.to_string());
+    write_vec.push(pair.total_volume_24_hour_fiat.to_string());
+    write_vec.push(pair.change_day.to_string());
+    write_vec.push(pair.change_pct_day.to_string());
+    write_vec.push(pair.change_24_hour.to_string());
+    write_vec.push(pair.change_pct_24_hour.to_string());
+    write_vec.push(pair.supply.to_string());
+    write_vec.push(pair.market_cap.to_string());
+    write_vec.push(pair.open_hour.to_string());
+    write_vec.push(pair.high_hour.to_string());
+    write_vec.push(pair.low_hour.to_string());
+    write_vec.push(pair.open_day.to_string());
+    write_vec.push(pair.high_day.to_string());
+    write_vec.push(pair.low_day.to_string());
+    write_vec.push(pair.open_24_hour.to_string());
+    write_vec.push(pair.high_24_hour.to_string());
+    write_vec.push(pair.low_24_hour.to_string());
+    write_vec
 }
 
 fn queue_frames(mut queue: HashMap<String, Vec<Vec<String>>>, 
                                 frame: &HashMap<String, CryptoFiat>, 
-                                timestamp: &u64,
+                                timestamp: u64,
                                 agent_conf: &Configuration,
                                 ) -> HashMap<String, Vec<Vec<String>>> 
 {
@@ -259,7 +259,7 @@ fn queue_frames(mut queue: HashMap<String, Vec<Vec<String>>>,
             let mut difference = 0;
 
             //this makes sure not to delete too many frames if the current frame is non interval
-            if *timestamp as i64 % agent_conf.interval == 0 {
+            if timestamp as i64 % agent_conf.interval == 0 {
                 difference = queue[&key].len() as i64 - agent_conf.window + 1;            
             } else {
                 difference = queue[&key].len() as i64 - agent_conf.window;
@@ -275,10 +275,10 @@ fn queue_frames(mut queue: HashMap<String, Vec<Vec<String>>>,
         }
 
         //add or skip the new frame depending on the interval size
-        if *timestamp as i64 % agent_conf.interval == 0 {
-            let writeVEC = arrange_vec(&frame[&key], &timestamp);
+        if timestamp as i64 % agent_conf.interval == 0 {
+            let write_vec = arrange_vec(&frame[&key], &timestamp);
             queue.entry(key).and_modify(|timesteps| {
-                timesteps.push(writeVEC);                
+                timesteps.push(write_vec);                
             });
             
         }
@@ -289,7 +289,7 @@ fn queue_frames(mut queue: HashMap<String, Vec<Vec<String>>>,
 
 
 /*
-fn measure(metricVEC: Vec<u64>, master: DB) {
+fn measure(metric_vec: Vec<u64>, master: DB) {
     //i have a hypotheis that the writing will be faster using a usb hdd over the sdcard or usb drive in the pi
     //for each write do checks if master, table, etc exist
     //that way if the disk is changed it can write a new master
@@ -385,13 +385,13 @@ fn get_agent_conf(frame: &HashMap<String, CryptoFiat>) -> Configuration {
             }
 
             if import_conf.interval < 30 {
-                import_conf.interval = default_conf.interval.clone();
+                import_conf.interval = default_conf.interval;
                 err_string = "used default interval, interval too small".to_owned();
                 err_count += 1;
             }
 
             if import_conf.interval % 30 != 0 {
-                import_conf.interval = default_conf.interval.clone();
+                import_conf.interval = default_conf.interval;
                 err_string = "used default interval, interval is not divisable by 30".to_owned();
             }
 
@@ -423,7 +423,7 @@ fn inform_agent(queue: &HashMap<String, Vec<Vec<String>>>, agent_conf: &Configur
             Err(_) => {
                 let mut file = File::create(format!("{}{}.txt", &agent_conf.path, pair)).expect("failed to create output file in inform_agent");
                 //this could use a var which contains all the columns and is used in write_data
-                file.write(b"timestamp,last_update,price,last_market,last_volume_crypto,volume_hour_crypto,volume_day_crypto,volume_24_hour_crypto,total_volume_24_hour_crypto,last_volume_fiat,volume_hour_fiat,volume_day_fiat,volume_24_hour_fiat,total_volume_24_hour_fiat,change_day,change_pct_day,change_24_hour,change_pct_24_hour,supply,market_cap,open_hour,high_hour,low_hour,open_day,high_day,low_day,open_24_hour,high_24_hour,low_24_hour")
+                file.write_all(b"timestamp,last_update,price,last_market,last_volume_crypto,volume_hour_crypto,volume_day_crypto,volume_24_hour_crypto,total_volume_24_hour_crypto,last_volume_fiat,volume_hour_fiat,volume_day_fiat,volume_24_hour_fiat,total_volume_24_hour_fiat,change_day,change_pct_day,change_24_hour,change_pct_24_hour,supply,market_cap,open_hour,high_hour,low_hour,open_day,high_day,low_day,open_24_hour,high_24_hour,low_24_hour")
                     .expect("failed to write headers to file");
                 file.sync_all().expect("failed to sync changes after creating output file in inform_agent");
             },
@@ -433,7 +433,7 @@ fn inform_agent(queue: &HashMap<String, Vec<Vec<String>>>, agent_conf: &Configur
 
     'pair: for pair in queue.keys() {
         'timestep: for timestep in queue[pair].clone(){
-            if queue[pair].len() == 0 {
+            if queue[pair].is_empty() {
                 return
             }
             let mut file = OpenOptions::new()
@@ -448,7 +448,7 @@ fn inform_agent(queue: &HashMap<String, Vec<Vec<String>>>, agent_conf: &Configur
             if current_contents.contains(&timestep[0].to_string()) {
                 continue 'timestep;
             }
-            file.write(&format!("\n{}", &timestep.join(",")).into_bytes()).expect("failed to append frame to output file in inform_agent");
+            file.write_all(&format!("\n{}", &timestep.join(",")).into_bytes()).expect("failed to append frame to output file in inform_agent");
             file.sync_all().expect("failed to sync changes after appending to output file in inform_agent");
         }
     }
@@ -489,7 +489,7 @@ fn default_string() -> String {
     "MISSING".to_string()
 }
 fn default_int() -> i64 {
-    424242
+    424_242
 }
 fn default_float() -> f64 {
     4242.42
@@ -639,12 +639,12 @@ fn main() {
     let mut count = 0;
 
     'main: loop{
-        let mut metricVEC: Vec<u64> = vec![];
+        let mut metric_vec: Vec<u64> = vec![];
 
         let start = Instant::now();
         //set_disk(&master, &metrics);
         let duration = start.elapsed().as_secs();
-        metricVEC.push(duration);
+        metric_vec.push(duration);
 
         //only get_data on 30s divisable timestamp
         let (frame, timestamp) = 'wait: loop {
@@ -654,11 +654,11 @@ fn main() {
                 let start = Instant::now();
                 let frame = get_data();
                 let duration = start.elapsed().as_secs();
-                metricVEC.push(duration);
+                metric_vec.push(duration);
 
                 break 'wait (frame, timestamp)
             } else {
-                let sleep_time = time::Duration::from_secs(0.5);
+                let sleep_time = time::Duration::from_secs(1);
                 thread::sleep(sleep_time);
             }
         };
@@ -666,34 +666,34 @@ fn main() {
         let start = Instant::now();
         let agent_conf = get_agent_conf(&frame);
         let duration = start.elapsed().as_secs();
-        metricVEC.push(duration);
+        metric_vec.push(duration);
 
         let start = Instant::now();
-        queue = queue_frames(queue, &frame, &timestamp, &agent_conf);
+        queue = queue_frames(queue, &frame, timestamp, &agent_conf);
         let duration = start.elapsed().as_secs();
-        metricVEC.push(duration);
+        metric_vec.push(duration);
 
         let start = Instant::now();
         //inform_agent(&queue, &agent_conf);
         let duration = start.elapsed().as_secs();
-        metricVEC.push(duration);
+        metric_vec.push(duration);
 
         let start = Instant::now();
         //this takes 9s for create and write, 3s-15s for write
-        write_data(&frame, &timestamp, &master);
+        write_data(&frame, timestamp, &master);
         let duration = start.elapsed().as_secs();
-        metricVEC.push(duration);
+        metric_vec.push(duration);
 
         let start = Instant::now();
         //get_agent_metrics();
         let duration = start.elapsed().as_secs();
-        metricVEC.push(duration);
+        metric_vec.push(duration);
 
-        //measure(metricVEC, metrics);
+        //measure(metric_vec, metrics);
         println!("{} frames captured", count +1);
-        println!("the get_data function took {}s", metricVEC[1]);
-        println!("the queue_frames function took {}s", metricVEC[2]);
-        println!("the write_data function took {}s", metricVEC[4]);
+        println!("the get_data function took {}s", metric_vec[1]);
+        println!("the queue_frames function took {}s", metric_vec[2]);
+        println!("the write_data function took {}s", metric_vec[4]);
         count += 1;
     }
 }
@@ -821,7 +821,7 @@ mod tests {
             //this was literally hitler to write, but its all mine from scratch
             Err(e) => Box::new(|| {
                 let mut file = File::create("test_timestamp.txt").expect("failed to create test_timestamp.txt");
-                file.write(&"1548299340".to_string().into_bytes()).expect("failed to write index to test_timestamp.txt");
+                file.write_all(&"1548299340".to_string().into_bytes()).expect("failed to write index to test_timestamp.txt");
                 file.sync_all().expect("failed to sync file changes after writing test_timestamp.txt");
                 "1548299340\u{0}\u{0}".to_string()
                 }),
@@ -933,7 +933,7 @@ mod tests {
         //this is adding 60 to the timestamp all the sudden
         let writestamp = index + 30;
         let writestamp = writestamp.to_string();
-        file.write(&writestamp.into_bytes()).expect("failed to write to file for increment");
+        file.write_all(&writestamp.into_bytes()).expect("failed to write to file for increment");
         file.sync_all().expect("failed to sync file changes after writing test_timestamp.txt");
         return (frame, timestamp);
 
@@ -1117,8 +1117,8 @@ mod tests {
     fn arrange_vec_has_29_items() -> Result<(), ()> {
         let (frame, timestamp) = get_one_fake_frame();
         let pair = &frame["BTCandUSD"];
-        let writeVEC = arrange_vec(&pair, &timestamp);
-        if writeVEC.len() == 29 {
+        let write_vec = arrange_vec(&pair, &timestamp);
+        if write_vec.len() == 29 {
             Ok(())
         } else {
             Err(())
@@ -1128,20 +1128,20 @@ mod tests {
     fn arrange_vec_returns_valid_writevec() -> Result<(), ()> {
         let (frame, timestamp) = get_one_fake_frame();
         let pair = &frame["BTCandUSD"];
-        let writeVEC = arrange_vec(&pair, &timestamp);
-        if writeVEC[0].len() == 10 &&
+        let write_vec = arrange_vec(&pair, &timestamp);
+        if write_vec[0].len() == 10 &&
             //market
-           writeVEC[3] == "Coinbase" &&
+           write_vec[3] == "Coinbase" &&
            //volume24h
-           writeVEC[7] == "37533.51939446323" &&
+           write_vec[7] == "37533.51939446323" &&
            //volume_day_fiat
-           writeVEC[11] == "140675918.74609685" &&
+           write_vec[11] == "140675918.74609685" &&
            //change_pct_day
-           writeVEC[15] == "2.3316949881989917" &&
+           write_vec[15] == "2.3316949881989917" &&
            //market_cap
-           writeVEC[19] == "65291977762.5" &&
+           write_vec[19] == "65291977762.5" &&
            //low_24h
-           writeVEC[28] == "3643.41"
+           write_vec[28] == "3643.41"
         {
             Ok(())
         } else {
@@ -1152,7 +1152,7 @@ mod tests {
     #[test]
     fn arrange_vec_test_group_with_2(){
         arrange_vec_has_29_items().expect("arrange_vec returns an incorrect number of items");
-        arrange_vec_returns_valid_writevec().expect("arrange_vec returns an invalid writeVEC");
+        arrange_vec_returns_valid_writevec().expect("arrange_vec returns an invalid write_vec");
     }
 
 
@@ -1169,7 +1169,7 @@ mod tests {
         };
 
         let (frame, timestamp) = get_one_fake_frame();
-        write_data(&frame, &timestamp, &master);
+        write_data(&frame, timestamp, &master);
 
         match File::open("test.db") {
             Err(_) => return Err(()),
@@ -1186,7 +1186,7 @@ mod tests {
         };
 
         let (frame, timestamp) = get_one_fake_frame();
-        write_data(&frame, &timestamp, &master);
+        write_data(&frame, timestamp, &master);
         //BTC,ETH,BCH,LTC,EOS,BNB,XMR,DASH,VEN,NEO,ETC,ZEC,WAVES,BTG,DCR,REP,GNO,MCO,FCT,HSR,DGD,XZC,VERI,PART,GAS,ZEN,GBYTE,BTCD,MLN,XCP,XRP,MAID
         let storage = Connection::open("test.db").expect("failed to open the database");
         let mut table_vec: HashSet<String> = [].iter().cloned().collect();
@@ -1252,7 +1252,7 @@ mod tests {
 
         let pair = &frame["BTCandUSD"];
 
-        write_data(&frame, &timestamp, &master);
+        write_data(&frame, timestamp, &master);
         //want to test all columns in all tables, but there is a inference issue when query string is formatted
         //and there is a no such var as row issue when closure adds each column to result_vec
         let storage = Connection::open("test.db").expect("failed to open the database");
@@ -1314,7 +1314,7 @@ mod tests {
             "low_24_hour",
         ].iter().cloned().collect();
 
-        write_data(&frame, &timestamp, &master);
+        write_data(&frame, timestamp, &master);
         //want to test all columns in all tables, but there is a inference issue when query string is formatted
         //and there is a no such var as row issue when closure adds each column to result_vec
         let storage = Connection::open("test.db").expect("failed to open the database");
@@ -1346,7 +1346,7 @@ mod tests {
         let frame = mini_struct_to_full_struct(mini_frame);
         let mut queue = HashMap::new();
         let agent_conf = get_agent_conf(&frame);
-        queue = queue_frames(queue, &frame, &timestamp, &agent_conf);
+        queue = queue_frames(queue, &frame, timestamp, &agent_conf);
 
         let mut table_vec: HashSet<String> = [].iter().cloned().collect();
         let expect_vec: HashSet<String> = [
@@ -1403,7 +1403,7 @@ mod tests {
             let (mini_frame, timestamp) = get_many_fake_frames();
             let frame = mini_struct_to_full_struct(mini_frame);
             let agent_conf = get_agent_conf(&frame);
-            queue = queue_frames(queue, &frame, &timestamp, &agent_conf);
+            queue = queue_frames(queue, &frame, timestamp, &agent_conf);
         }
 
         clean_up_confs();
@@ -1426,7 +1426,7 @@ mod tests {
             let (mini_frame, timestamp) = get_many_fake_frames();
             let frame = mini_struct_to_full_struct(mini_frame);
             let agent_conf = get_agent_conf(&frame);
-            queue = queue_frames(queue, &frame, &timestamp, &agent_conf);
+            queue = queue_frames(queue, &frame, timestamp, &agent_conf);
         }
 
         clean_up_confs();
@@ -1469,7 +1469,7 @@ mod tests {
         let frame = mini_struct_to_full_struct(mini_frame);
         let mut _queue = HashMap::new();
         let agent_conf = get_agent_conf(&frame);
-        _queue = queue_frames(_queue, &frame, &timestamp, &agent_conf);
+        _queue = queue_frames(_queue, &frame, timestamp, &agent_conf);
 
         match File::open("agent_conf.txt") {
             Err(_) => return Err(()),
@@ -1492,7 +1492,7 @@ mod tests {
             let (mini_frame, timestamp) = get_many_fake_frames();
             let frame = mini_struct_to_full_struct(mini_frame);
             let agent_conf = get_agent_conf(&frame);
-            queue = queue_frames(queue, &frame, &timestamp, &agent_conf);
+            queue = queue_frames(queue, &frame, timestamp, &agent_conf);
         }
 
         if queue["BTCandUSD"].len() != 60 {
@@ -1534,7 +1534,7 @@ mod tests {
         */
         clean_up_confs();
         let mut file = File::create("agent_conf.txt").expect("failed to create agent_conf.txt");
-        file.write(&"{\n    \"pairs\": [\n                  \"HAMandEGG\",\n                  \"BOBandMARTHA\"\n],\n    \"window\": 60,\n    \"interval\": 60,\n    \"path\": \"/agent_output/\"\n}\n".to_string().into_bytes()).expect("failed to write invalid pairs to agent_conf.txt");
+        file.write_all(&"{\n    \"pairs\": [\n                  \"HAMandEGG\",\n                  \"BOBandMARTHA\"\n],\n    \"window\": 60,\n    \"interval\": 60,\n    \"path\": \"/agent_output/\"\n}\n".to_string().into_bytes()).expect("failed to write invalid pairs to agent_conf.txt");
         file.sync_all().expect("failed to sync file changes after writing agent_conf.txt");
 
         let expect_vec: HashSet<String> = [
@@ -1576,7 +1576,7 @@ mod tests {
         let (mini_frame, timestamp) = get_many_fake_frames();
         let frame = mini_struct_to_full_struct(mini_frame);
         let agent_conf = get_agent_conf(&frame);
-        queue = queue_frames(queue, &frame, &timestamp, &agent_conf);
+        queue = queue_frames(queue, &frame, timestamp, &agent_conf);
 
         let returned_vec: HashSet<String> = queue.keys().map(|key| key.to_owned()).collect();
         if returned_vec == expect_vec {
@@ -1593,7 +1593,7 @@ mod tests {
     fn queue_frames_survives_too_small_interval() -> Result<(), ()> {
         clean_up_confs();
         let mut file = File::create("agent_conf.txt").expect("failed to create agent_conf.txt");
-        file.write(&"{\n    \"pairs\": [\n                  \"LTCandUSD\",\n                  \"MAIDandUSD\"\n],\n    \"window\": 60,\n    \"interval\": 15,\n    \"path\": \"/agent_output/\"\n}\n".to_string().into_bytes()).expect("failed to write invalid pairs to agent_conf.txt");
+        file.write_all(&"{\n    \"pairs\": [\n                  \"LTCandUSD\",\n                  \"MAIDandUSD\"\n],\n    \"window\": 60,\n    \"interval\": 15,\n    \"path\": \"/agent_output/\"\n}\n".to_string().into_bytes()).expect("failed to write invalid pairs to agent_conf.txt");
         file.sync_all().expect("failed to sync file changes after writing agent_conf.txt");
 
         let expect_vec: HashSet<String> = [
@@ -1607,7 +1607,7 @@ mod tests {
             let (mini_frame, timestamp) = get_many_fake_frames();
             let frame = mini_struct_to_full_struct(mini_frame);
             let agent_conf = get_agent_conf(&frame);
-            queue = queue_frames(queue, &frame, &timestamp, &agent_conf);
+            queue = queue_frames(queue, &frame, timestamp, &agent_conf);
         }
 
         let mut error_count = 0;
@@ -1639,7 +1639,7 @@ mod tests {
     fn queue_frames_survives_impossible_interval() -> Result<(), ()> {
         clean_up_confs();
         let mut file = File::create("agent_conf.txt").expect("failed to create agent_conf.txt");
-        file.write(&"{\n    \"pairs\": [\n                  \"LTCandUSD\",\n                  \"MAIDandUSD\"\n],\n    \"window\": 60,\n    \"interval\": 75,\n    \"path\": \"/agent_output/\"\n}\n".to_string().into_bytes()).expect("failed to write invalid pairs to agent_conf.txt");
+        file.write_all(&"{\n    \"pairs\": [\n                  \"LTCandUSD\",\n                  \"MAIDandUSD\"\n],\n    \"window\": 60,\n    \"interval\": 75,\n    \"path\": \"/agent_output/\"\n}\n".to_string().into_bytes()).expect("failed to write invalid pairs to agent_conf.txt");
         file.sync_all().expect("failed to sync file changes after writing agent_conf.txt");
 
         let expect_vec: HashSet<String> = [
@@ -1653,7 +1653,7 @@ mod tests {
             let (mini_frame, timestamp) = get_many_fake_frames();
             let frame = mini_struct_to_full_struct(mini_frame);
             let agent_conf = get_agent_conf(&frame);
-            queue = queue_frames(queue, &frame, &timestamp, &agent_conf);
+            queue = queue_frames(queue, &frame, timestamp, &agent_conf);
         }
 
         let mut error_count = 0;
@@ -1687,7 +1687,7 @@ mod tests {
     fn queue_frames_removes_many_when_interval_is_changed() -> Result<(),()> {
         clean_up_confs();
         let mut file = File::create("agent_conf.txt").expect("failed to create agent_conf.txt");
-        file.write(&"{\n    \"pairs\": [\n                  \"LTCandUSD\",\n                  \"MAIDandUSD\"\n],\n    \"window\": 60,\n    \"interval\": 60,\n    \"path\": \"/agent_output/\"\n}\n".to_string().into_bytes()).expect("failed to write invalid pairs to agent_conf.txt");
+        file.write_all(&"{\n    \"pairs\": [\n                  \"LTCandUSD\",\n                  \"MAIDandUSD\"\n],\n    \"window\": 60,\n    \"interval\": 60,\n    \"path\": \"/agent_output/\"\n}\n".to_string().into_bytes()).expect("failed to write invalid pairs to agent_conf.txt");
         file.sync_all().expect("failed to sync file changes after writing agent_conf.txt");
 
         let expect_vec: HashSet<String> = [
@@ -1701,18 +1701,18 @@ mod tests {
             let (mini_frame, timestamp) = get_many_fake_frames();
             let frame = mini_struct_to_full_struct(mini_frame);
             let agent_conf = get_agent_conf(&frame);
-            queue = queue_frames(queue, &frame, &timestamp, &agent_conf);
+            queue = queue_frames(queue, &frame, timestamp, &agent_conf);
         }
 
         let mut file = File::create("agent_conf.txt").expect("failed to create agent_conf.txt");
-        file.write(&"{\n    \"pairs\": [\n                  \"LTCandUSD\",\n                  \"MAIDandUSD\"\n],\n    \"window\": 60,\n    \"interval\": 120,\n    \"path\": \"/agent_output/\"\n}\n".to_string().into_bytes()).expect("failed to write invalid pairs to agent_conf.txt");
+        file.write_all(&"{\n    \"pairs\": [\n                  \"LTCandUSD\",\n                  \"MAIDandUSD\"\n],\n    \"window\": 60,\n    \"interval\": 120,\n    \"path\": \"/agent_output/\"\n}\n".to_string().into_bytes()).expect("failed to write invalid pairs to agent_conf.txt");
         file.sync_all().expect("failed to sync file changes after writing agent_conf.txt");
 
         for _each in 0..20 {
             let (mini_frame, timestamp) = get_many_fake_frames();
             let frame = mini_struct_to_full_struct(mini_frame);
             let agent_conf = get_agent_conf(&frame);
-            queue = queue_frames(queue, &frame, &timestamp, &agent_conf);
+            queue = queue_frames(queue, &frame, timestamp, &agent_conf);
         }
 
         let timestamp0: i64 = queue["LTCandUSD"][0][0].parse().expect("failed to parse timestamp0");
@@ -1744,7 +1744,7 @@ mod tests {
         */
         clean_up_confs();
         let mut file = File::create("agent_conf.txt").expect("failed to create agent_conf.txt");
-        file.write(&"{\n    \"pairs\": [\n                  \"LTCandUSD\",\n                  \"MAIDandUSD\"\n],\n    \"window\": 60,\n    \"interval\": 60,\n    \"path\": \"/agent_output/\"\n}\n".to_string().into_bytes()).expect("failed to write invalid pairs to agent_conf.txt");
+        file.write_all(&"{\n    \"pairs\": [\n                  \"LTCandUSD\",\n                  \"MAIDandUSD\"\n],\n    \"window\": 60,\n    \"interval\": 60,\n    \"path\": \"/agent_output/\"\n}\n".to_string().into_bytes()).expect("failed to write invalid pairs to agent_conf.txt");
         file.sync_all().expect("failed to sync file changes after writing agent_conf.txt");
 
         let expect_vec: HashSet<String> = [
@@ -1756,7 +1756,7 @@ mod tests {
         let (mini_frame, timestamp) = get_many_fake_frames();
         let frame = mini_struct_to_full_struct(mini_frame);
         let agent_conf = get_agent_conf(&frame);
-        queue = queue_frames(queue, &frame, &timestamp, &agent_conf);
+        queue = queue_frames(queue, &frame, timestamp, &agent_conf);
 
         let returned_vec: HashSet<String> = queue.keys().map(|key| key.to_owned()).collect();
         if returned_vec == expect_vec {
@@ -1807,7 +1807,7 @@ mod tests {
         let (mini_frame, timestamp) = get_many_fake_frames();
         let frame = mini_struct_to_full_struct(mini_frame);
         let agent_conf = get_agent_conf(&frame);
-        queue = queue_frames(queue, &frame, &timestamp, &agent_conf);
+        queue = queue_frames(queue, &frame, timestamp, &agent_conf);
         inform_agent(&queue, &agent_conf);
         
         let mut found_count = 0;
@@ -1844,7 +1844,7 @@ mod tests {
         let (mini_frame, timestamp) = get_many_fake_frames();
         let frame = mini_struct_to_full_struct(mini_frame);
         let agent_conf = get_agent_conf(&frame);
-        queue = queue_frames(queue, &frame, &timestamp, &agent_conf);
+        queue = queue_frames(queue, &frame, timestamp, &agent_conf);
         inform_agent(&queue, &agent_conf);
         Ok(())
     }
@@ -1899,7 +1899,7 @@ mod tests {
             let (mini_frame, timestamp) = get_many_fake_frames();
             let frame = mini_struct_to_full_struct(mini_frame);
             let agent_conf = get_agent_conf(&frame);
-            queue = queue_frames(queue, &frame, &timestamp, &agent_conf);
+            queue = queue_frames(queue, &frame, timestamp, &agent_conf);
             inform_agent(&queue, &agent_conf);
         }
 
@@ -1934,7 +1934,7 @@ mod tests {
         let (mini_frame, timestamp) = get_many_fake_frames();
         let frame = mini_struct_to_full_struct(mini_frame);
         let agent_conf = get_agent_conf(&frame);
-        queue = queue_frames(queue, &frame, &timestamp, &agent_conf);
+        queue = queue_frames(queue, &frame, timestamp, &agent_conf);
         inform_agent(&queue, &agent_conf);
         
         let mut headers_found = 0;
@@ -2019,7 +2019,7 @@ mod tests {
         for _each in 0..4 {
             let (mini_frame, timestamp) = get_many_fake_frames();
             let frame = mini_struct_to_full_struct(mini_frame);
-            queue = queue_frames(queue, &frame, &timestamp, &agent_conf);
+            queue = queue_frames(queue, &frame, timestamp, &agent_conf);
             inform_agent(&queue, &agent_conf);
         }
 
