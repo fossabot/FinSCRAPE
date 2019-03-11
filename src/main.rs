@@ -436,13 +436,15 @@ fn inform_agent(queue: &HashMap<String, Vec<Vec<String>>>, agent_conf: &Configur
     }
 
     for pair in queue.keys() {
-        let mut file = OpenOptions::new()
-                                            .append(true)
-                                            .write(true)
-                                            .open(format!("{}{}.txt", &agent_conf.path, pair))
-                                            .expect("failed to open output file a second time for appending");
-        file.write(&format!("\n{}", &queue[pair][0].join(",")).into_bytes()).expect("failed to append frame to output file in inform_agent");
-        file.sync_all().expect("failed to sync changes after appending to output file in inform_agent");
+        for timestep in queue[pair].clone(){
+            let mut file = OpenOptions::new()
+                                                .append(true)
+                                                .write(true)
+                                                .open(format!("{}{}.txt", &agent_conf.path, pair))
+                                                .expect("failed to open output file a second time for appending");
+            file.write(&format!("\n{}", &timestep.join(",")).into_bytes()).expect("failed to append frame to output file in inform_agent");
+            file.sync_all().expect("failed to sync changes after appending to output file in inform_agent");
+        }
     }
 
 }
@@ -1961,7 +1963,80 @@ mod tests {
         //connect to db
         //for pair in agent_conf, select * where timestamp > = 1548299400, limit results to 3
         //append to expect_map Vec at the pairs key only the frames which timestamp % 60 == 0
+        //maybe we save this for later if we find out that there are bugs in file creation that are present in some files but not others
+        clean_up_agent_output();
+        clean_up_confs();
 
+        let mut queue = HashMap::new();
+        let agent_conf = Configuration {
+            pairs: vec![
+                            "BCHandUSD".to_string(),
+                            "BNBandUSD".to_string(),
+                            "BTCDandUSD".to_string(),
+                            "BTCandUSD".to_string(),
+                            "BTGandUSD".to_string(),
+                            "DASHandUSD".to_string(),
+                            "DCRandUSD".to_string(),
+                            "DGDandUSD".to_string(),
+                            "EOSandUSD".to_string(),
+                            "ETCandUSD".to_string(),
+                            "ETHandUSD".to_string(),
+                            "FCTandUSD".to_string(),
+                            "GASandUSD".to_string(),
+                            "GBYTEandUSD".to_string(),
+                            "GNOandUSD".to_string(),
+                            "HSRandUSD".to_string(),
+                            "LTCandUSD".to_string(),
+                            "MAIDandUSD".to_string(),
+                            "MCOandUSD".to_string(),
+                            "MLNandUSD".to_string(),
+                            "NEOandUSD".to_string(),
+                            "PARTandUSD".to_string(),
+                            "REPandUSD".to_string(),
+                            "VENandUSD".to_string(),
+                            "VERIandUSD".to_string(),
+                            "WAVESandUSD".to_string(),
+                            "XCPandUSD".to_string(),
+                            "XMRandUSD".to_string(),
+                            "XRPandUSD".to_string(),
+                            "XZCandUSD".to_string(),
+                            "ZECandUSD".to_string(),
+                            "ZENandUSD".to_string()
+                        ], 
+            window: 60, 
+            interval: 60, 
+            //this is the path of the output files for the agent not the conf file
+            path: "output/".to_string()
+        };
+
+        for _each in 0..4 {
+            let (mini_frame, timestamp) = get_many_fake_frames();
+            let frame = mini_struct_to_full_struct(mini_frame);
+            let agent_conf = get_agent_conf(&frame);
+            queue = queue_frames(queue, &frame, &timestamp, &agent_conf);
+            inform_agent(&queue, &agent_conf);
+        }
+
+        let output_dir = fs::read_dir(agent_conf.path).expect("failed to find the agent output folder");
+        for file_name in output_dir {
+            let file_path = file_name.expect("failed to get path from file_name").path().to_owned();
+            let path_string = &file_path.to_str().expect("failed to convert path to string");
+            if path_string.contains(&"BTCandUSD.txt"){
+                let actual_contents = fs::read_to_string(&file_path).expect("failed to open the pair output file");
+                //on 60s interval the third db entry should be the correct frame
+                //don't know why I thought I was testing each file with the same string, one will probably suffice
+                let expected_contents = "timestamp,last_update,price,last_market,last_volume_crypto,volume_hour_crypto,volume_day_crypto,volume_24_hour_crypto,total_volume_24_hour_crypto,last_volume_fiat,volume_hour_fiat,volume_day_fiat,volume_24_hour_fiat,total_volume_24_hour_fiat,change_day,change_pct_day,change_24_hour,change_pct_24_hour,supply,market_cap,open_hour,high_hour,low_hour,open_day,high_day,low_day,open_24_hour,high_24_hour,low_24_hour\n1548299400,1548299386,3563.05,Coinbase,2.27028,55.11959520110003,2828.712083715772,35970.19873490927,289160.164580949,8053.137216,196314.89992898345,10079960.250829196,128733091.15535802,1030861598.96309,-9,-0.25195615962822465,-36.13999999999987,-1.004114814722198,17497875,62345803518.75,3562.4,3563.38,3562.09,3572.05,3575.02,3552.75,3599.19,3629.82,3538.96\n1548299400,1548299386,3563.05,Coinbase,2.27028,55.11959520110003,2828.712083715772,35970.19873490927,289160.164580949,8053.137216,196314.89992898345,10079960.250829196,128733091.15535802,1030861598.96309,-9,-0.25195615962822465,-36.13999999999987,-1.004114814722198,17497875,62345803518.75,3562.4,3563.38,3562.09,3572.05,3575.02,3552.75,3599.19,3629.82,3538.96\n1548299400,1548299386,3563.05,Coinbase,2.27028,55.11959520110003,2828.712083715772,35970.19873490927,289160.164580949,8053.137216,196314.89992898345,10079960.250829196,128733091.15535802,1030861598.96309,-9,-0.25195615962822465,-36.13999999999987,-1.004114814722198,17497875,62345803518.75,3562.4,3563.38,3562.09,3572.05,3575.02,3552.75,3599.19,3629.82,3538.96\n1548299460,1548299446,3563.22,Coinbase,0.00556621,60.15573706110003,2833.7482255757727,35975.23487676927,289356.41780837165,19.7487460937,214180.53621727673,10097825.887117485,128750956.79164632,1031603855.4371904,-8.830000000000382,-0.24719698772414667,-35.970000000000255,-0.99939152976087,17497875,62348778157.5,3562.4,3563.38,3562.09,3572.05,3575.02,3552.75,3599.19,3629.82,3538.96";
+                if expected_contents == actual_contents {
+                    clean_up_confs();
+                    clean_up_agent_output();
+                    return Ok(());
+                }
+            }
+            
+        }
+
+        clean_up_confs();
+        //clean_up_agent_output();
 
         Err(())
     }
@@ -1981,7 +2056,9 @@ mod tests {
         inform_agent_creates_file_for_each_key().expect("failed to create file for each key in queue");
         inform_agent_creates_correct_column_headers().expect("failed to find header in one or more output files");
         inform_agent_survives_no_frames().expect("inform agent panicked when given no frames");
-        inform_agent_adds_single_frame_to_each_file().expect("inform agent failed to add a frame to each file");
+        inform_agent_adds_single_frame_to_each_file().expect("inform agent failed to add a frame to one file");
+        inform_agent_adds_many_frames_to_each_file().expect("inform agent failed to add multiple frames to one file");
+
     }
 
 
