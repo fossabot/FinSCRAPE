@@ -1764,6 +1764,7 @@ mod tests {
 
     #[test]
     #[serial(mut_timestamp)]
+    //this should be refactored to get_agent_conf group, but still test both get_agent_conf and queue_frames
     fn queue_frames_conf_group_with_7(){
         queue_frames_creates_conf_when_none().expect("queue_frames failed to create a blank conf file");
         queue_frames_survives_blank_conf_and_caps_at_defaults().expect("queue_frames did not use defaults when conf was blank");
@@ -1862,19 +1863,18 @@ mod tests {
         for file_name in output_dir {
             let file_path = file_name.expect("failed to get path from file_name").path().to_owned();
             let path_string = &file_path.to_str().expect("failed to convert path to string");
-            for pair in queue.keys() {
-                if path_string.contains(&format!("{}.txt", pair)){
-                    let actual_contents = fs::read_to_string(&file_path).expect("failed to open the pair output file");
-                    //on 60s interval the third db entry should be the correct frame
-                    //don't know why I thought I was testing each file with the same string, one will probably suffice
-                    let expected_contents = "timestamp,last_update,price,last_market,last_volume_crypto,volume_hour_crypto,volume_day_crypto,volume_24_hour_crypto,total_volume_24_hour_crypto,last_volume_fiat,volume_hour_fiat,volume_day_fiat,volume_24_hour_fiat,total_volume_24_hour_fiat,change_day,change_pct_day,change_24_hour,change_pct_24_hour,supply,market_cap,open_hour,high_hour,low_hour,open_day,high_day,low_day,open_24_hour,high_24_hour,low_24_hour\n1548299400,1548299386,3563.05,Coinbase,2.27028,55.11959520110003,2828.712083715772,35970.19873490927,289160.164580949,8053.137216,196314.89992898345,10079960.250829196,128733091.15535802,1030861598.96309,-9,-0.25195615962822465,-36.13999999999987,-1.004114814722198,17497875,62345803518.75,3562.4,3563.38,3562.09,3572.05,3575.02,3552.75,3599.19,3629.82,3538.96";
-                    if expected_contents == actual_contents {
-                        clean_up_confs();
-                        clean_up_agent_output();
-                        return Ok(());
-                    }
+            if path_string.contains(&"BTCandUSD.txt"){
+                let actual_contents = fs::read_to_string(&file_path).expect("failed to open the pair output file");
+                //on 60s interval the third db entry should be the correct frame
+                //don't know why I thought I was testing each file with the same string, one will probably suffice
+                let expected_contents = "timestamp,last_update,price,last_market,last_volume_crypto,volume_hour_crypto,volume_day_crypto,volume_24_hour_crypto,total_volume_24_hour_crypto,last_volume_fiat,volume_hour_fiat,volume_day_fiat,volume_24_hour_fiat,total_volume_24_hour_fiat,change_day,change_pct_day,change_24_hour,change_pct_24_hour,supply,market_cap,open_hour,high_hour,low_hour,open_day,high_day,low_day,open_24_hour,high_24_hour,low_24_hour\n1548299400,1548299386,3563.05,Coinbase,2.27028,55.11959520110003,2828.712083715772,35970.19873490927,289160.164580949,8053.137216,196314.89992898345,10079960.250829196,128733091.15535802,1030861598.96309,-9,-0.25195615962822465,-36.13999999999987,-1.004114814722198,17497875,62345803518.75,3562.4,3563.38,3562.09,3572.05,3575.02,3552.75,3599.19,3629.82,3538.96";
+                if expected_contents == actual_contents {
+                    clean_up_confs();
+                    clean_up_agent_output();
+                    return Ok(());
                 }
             }
+            
         }
 
         clean_up_confs();
@@ -1920,6 +1920,13 @@ mod tests {
     }
 
     fn inform_agent_adds_many_frames_to_each_file() -> Result<(),()> {
+        //for pair in agent_conf.pairs
+        //add key and mutable vec with "timestamp,last_update,price,last_market,last_volume_crypto,volume_hour_crypto,volume_day_crypto,volume_24_hour_crypto,total_volume_24_hour_crypto,last_volume_fiat,volume_hour_fiat,volume_day_fiat,volume_24_hour_fiat,total_volume_24_hour_fiat,change_day,change_pct_day,change_24_hour,change_pct_24_hour,supply,market_cap,open_hour,high_hour,low_hour,open_day,high_day,low_day,open_24_hour,high_24_hour,low_24_hour"
+        //connect to db
+        //for pair in agent_conf, select * where timestamp > = 1548299400, limit results to 3
+        //append to expect_map Vec at the pairs key only the frames which timestamp % 60 == 0
+
+
         Err(())
     }
 
@@ -1932,6 +1939,7 @@ mod tests {
     }
 
     #[test]
+    //this is the last serial test, so our 2min test time should be close to final
     #[serial(mut_timestamp)]
     fn inform_agent_group(){
         inform_agent_creates_file_for_each_key().expect("failed to create file for each key in queue");
