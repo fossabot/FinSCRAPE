@@ -239,13 +239,9 @@ fn queue_frames(mut queue: HashMap<String, Vec<Vec<String>>>,
                                 ) -> HashMap<String, Vec<Vec<String>>> 
 {
 
-    //create configuration file if none
-    
-
-
     //this inserts each pair that is requested and a blank timestep vec if there are none
     for pair in &agent_conf.pairs {
-        let mut timesteps = vec![];
+        let timesteps = vec![];
         queue.entry(pair.to_string()).or_insert(timesteps);
     }
     
@@ -284,6 +280,7 @@ fn queue_frames(mut queue: HashMap<String, Vec<Vec<String>>>,
             queue.entry(key).and_modify(|timesteps| {
                 timesteps.push(writeVEC);                
             });
+            
         }
     }
 
@@ -432,7 +429,20 @@ fn inform_agent(queue: &HashMap<String, Vec<Vec<String>>>, agent_conf: &Configur
             },
             Ok(_) => ()
         };
+    }
 
+    if queue["BTCandUSD"].len() == 0 {
+        return
+    }
+
+    for pair in queue.keys() {
+        let mut file = OpenOptions::new()
+                                            .append(true)
+                                            .write(true)
+                                            .open(format!("{}{}.txt", &agent_conf.path, pair))
+                                            .expect("failed to open output file a second time for appending");
+        file.write(&format!("\n{}", &queue[pair][0].join(",")).into_bytes()).expect("failed to append frame to output file in inform_agent");
+        file.sync_all().expect("failed to sync changes after appending to output file in inform_agent");
     }
 
 }
@@ -1818,12 +1828,22 @@ mod tests {
     }
 
     fn inform_agent_survives_no_frames() -> Result<(),()> {
-        Err(())
+        clean_up_agent_output();
+        clean_up_confs();
+
+        let mut queue = HashMap::new();
+        let (mini_frame, timestamp) = get_many_fake_frames();
+        let frame = mini_struct_to_full_struct(mini_frame);
+        let agent_conf = get_agent_conf(&frame);
+        queue = queue_frames(queue, &frame, &timestamp, &agent_conf);
+        inform_agent(&queue, &agent_conf);
+        Ok(())
     }
 
     fn inform_agent_adds_single_frame_to_each_file() -> Result<(),()> {
         clean_up_agent_output();
         clean_up_confs();
+
         let mut queue = HashMap::new();
         let (mini_frame, timestamp) = get_many_fake_frames();
         let frame = mini_struct_to_full_struct(mini_frame);
@@ -1833,11 +1853,12 @@ mod tests {
         for _each in 0..2 {
             let (mini_frame, timestamp) = get_many_fake_frames();
             let frame = mini_struct_to_full_struct(mini_frame);
+            let agent_conf = get_agent_conf(&frame);
             queue = queue_frames(queue, &frame, &timestamp, &agent_conf);
+            inform_agent(&queue, &agent_conf);
         }
-        inform_agent(&queue, &agent_conf);
+
         
-        let mut frames_found = 0;
         let output_dir = fs::read_dir(agent_conf.path).expect("failed to find the agent output folder");
         for file_name in output_dir {
             let file_path = file_name.expect("failed to get path from file_name").path().to_owned();
@@ -1846,23 +1867,22 @@ mod tests {
                 if path_string.contains(&format!("{}.txt", pair)){
                     let actual_contents = fs::read_to_string(&file_path).expect("failed to open the pair output file");
                     //on 60s interval the third db entry should be the correct frame
-                    let expected_contents = "timestamp,last_update,price,last_market,last_volume_crypto,volume_hour_crypto,volume_day_crypto,volume_24_hour_crypto,total_volume_24_hour_crypto,last_volume_fiat,volume_hour_fiat,volume_day_fiat,volume_24_hour_fiat,total_volume_24_hour_fiat,change_day,change_pct_day,change_24_hour,change_pct_24_hour,supply,market_cap,open_hour,high_hour,low_hour,open_day,high_day,low_day,open_24_hour,high_24_hour,low_24_hour\n
-                                                                1548299400,1548299386,3563.05,Coinbase,2.27028,55.1195952011,2828.71208371577,35970.1987349093,289160.164580949,8053.137216,196314.899928983,10079960.2508292,128733091.155358,1030861598.96309,-9.0,-0.251956159628225,-36.1399999999999,-1.0041148147222,17497875.0,62345803518.75,3562.4,3563.38,3562.09,3572.05,3575.02,3552.75,3599.19,3629.82,3538.96";
+                    //don't know why I thought I was testing each file with the same string, one will probably suffice
+                    let expected_contents = "timestamp,last_update,price,last_market,last_volume_crypto,volume_hour_crypto,volume_day_crypto,volume_24_hour_crypto,total_volume_24_hour_crypto,last_volume_fiat,volume_hour_fiat,volume_day_fiat,volume_24_hour_fiat,total_volume_24_hour_fiat,change_day,change_pct_day,change_24_hour,change_pct_24_hour,supply,market_cap,open_hour,high_hour,low_hour,open_day,high_day,low_day,open_24_hour,high_24_hour,low_24_hour
+                                                            \n1548299400,1548299386,3563.05,Coinbase,2.27028,55.11959520110003,2828.712083715772,35970.19873490927,289160.164580949,8053.137216,196314.89992898345,10079960.250829196,128733091.15535802,1030861598.96309,-9,-0.25195615962822465,-36.13999999999987,-1.004114814722198,17497875,62345803518.75,3562.4,3563.38,3562.09,3572.05,3575.02,3552.75,3599.19,3629.82,3538.96";
                     if expected_contents == actual_contents {
-                        frames_found += 1;
+                        clean_up_confs();
+                        clean_up_agent_output();
+                        return Ok(());
                     }
                 }
             }
         }
 
         clean_up_confs();
-        //clean_up_agent_output();
+        clean_up_agent_output();
 
-        if frames_found == queue.keys().len() {
-            Ok(())
-        } else {
-            Err(())
-        }
+        Err(())
     }
 
     fn inform_agent_creates_correct_column_headers() -> Result<(),()>{
@@ -1918,6 +1938,7 @@ mod tests {
     fn inform_agent_group(){
         inform_agent_creates_file_for_each_key().expect("failed to create file for each key in queue");
         inform_agent_creates_correct_column_headers().expect("failed to find header in one or more output files");
+        inform_agent_survives_no_frames().expect("inform agent panicked when given no frames");
         inform_agent_adds_single_frame_to_each_file().expect("inform agent failed to add a frame to each file");
     }
 
