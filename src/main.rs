@@ -2166,7 +2166,7 @@ mod tests {
         inform_agent_survives_no_frames().expect("inform agent panicked when given no frames");
         inform_agent_adds_single_frame_to_each_file().expect("inform agent failed to add a frame to one file");
         inform_agent_adds_many_frames_to_each_file().expect("inform agent failed to add multiple frames to one file");
-        //inform_agent_changes_output_when_pairs_change().expect("inform agent failed to reduce the number of output files when the pairs change");
+        inform_agent_changes_output_when_pairs_change().expect("inform agent failed to reduce the number of output files when the pairs change");
 
     }
 
