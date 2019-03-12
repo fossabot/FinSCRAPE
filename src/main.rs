@@ -398,7 +398,7 @@ fn get_agent_conf(frame: &HashMap<String, CryptoFiat>) -> Configuration {
             if err_count > 0 {
                 println!("{}", err_string);
             }
-
+            println!("using loaded conf");
             import_conf
         },
 
@@ -658,7 +658,7 @@ fn main() {
 
                 break 'wait (frame, timestamp)
             } else {
-                let sleep_time = time::Duration::from_secs(1);
+                let sleep_time = time::Duration::from_millis(500);
                 thread::sleep(sleep_time);
             }
         };
@@ -981,6 +981,7 @@ mod tests {
     }
 
     #[test]
+    #[ignore]
     #[serial(mut_timestamp)]
     fn get_many_fake_frames_group_with_2() {
         //mutation/deletion of the shared file in get_many_fake_frames prevents any of these tests from being run in parallel
@@ -1731,7 +1732,42 @@ mod tests {
     }
 
     fn queue_frames_removes_keys_when_pairs_are_changed() -> Result<(),()> {
-        Err(())
+        clean_up_confs();
+        clean_up_agent_output();
+
+        let mut queue = HashMap::new();
+        let (mini_frame, timestamp) = get_many_fake_frames();
+        let frame = mini_struct_to_full_struct(mini_frame);
+        //load default conf with all pairs
+        let agent_conf = get_agent_conf(&frame);
+        queue = queue_frames(queue, &frame, timestamp, &agent_conf);
+        inform_agent(&queue, &agent_conf);
+        
+        let mut file = File::create("agent_conf.txt").expect("failed to create agent_conf.txt");
+        file.write_all(&"{\n    \"pairs\": [\n                  \"BTCandUSD\",\n                  \"ETHandUSD\"\n],\n    \"window\": 60,\n    \"interval\": 60,\n    \"path\": \"output/\"\n}\n".to_string().into_bytes()).expect("failed to write invalid pairs to agent_conf.txt");
+        file.sync_all().expect("failed to sync file changes after writing agent_conf.txt");
+
+        let pairs = vec!["BTCandUSD", "ETHandUSD"];
+
+        let (mini_frame, timestamp) = get_many_fake_frames();
+        let frame = mini_struct_to_full_struct(mini_frame);
+        //load new conf with two pairs
+        let agent_conf = get_agent_conf(&frame);
+        queue = queue_frames(queue, &frame, timestamp, &agent_conf);
+        inform_agent(&queue, &agent_conf);
+
+        for key in queue.keys() {
+            if !pairs.contains(&key.as_str()) {
+                clean_up_confs();
+                clean_up_agent_output();
+                return Err(());
+            }
+        }
+
+        clean_up_confs();
+        clean_up_agent_output();
+        Ok(())
+
     }
 
     fn queue_frames_notifies_invalid_conf_params() -> Result<(), ()> {
@@ -1773,7 +1809,7 @@ mod tests {
     #[test]
     #[serial(mut_timestamp)]
     //this should be refactored to get_agent_conf group, but still test both get_agent_conf and queue_frames
-    fn queue_frames_conf_group_with_7(){
+    fn agent_conf_group_with_8(){
         queue_frames_creates_conf_when_none().expect("queue_frames failed to create a blank conf file");
         queue_frames_survives_blank_conf_and_caps_at_defaults().expect("queue_frames did not use defaults when conf was blank");
         queue_frames_survives_invalid_pairs().expect("queue_frames did not revert to default when given an invalid config");
@@ -1781,6 +1817,7 @@ mod tests {
         queue_frames_survives_too_small_interval().expect("queue_frames did not properly continue after being given too small a duration");
         queue_frames_survives_impossible_interval().expect("queue_frames did not continue after being given an interval not divisable by 30");
         queue_frames_removes_many_when_interval_is_changed().expect("queue_frames did not remove the non interval frames after the interval was changed");
+        queue_frames_removes_keys_when_pairs_are_changed().expect("queue_frames failed to remove keys from queue after conf was changed");
     
         //what is this test, does it take user input???
         //queue_frames_notifies_invalid_conf_params().expect("queue_frames failed to notify");
@@ -2045,6 +2082,60 @@ mod tests {
         Err(())
     }
 
+    fn inform_agent_changes_output_when_pairs_change() -> Result<(),()> {
+        clean_up_agent_output();
+        clean_up_confs();
+
+        let mut queue = HashMap::new();
+        let (mini_frame, timestamp) = get_many_fake_frames();
+        let frame = mini_struct_to_full_struct(mini_frame);
+        //load default conf with all pairs
+        let agent_conf = get_agent_conf(&frame);
+        queue = queue_frames(queue, &frame, timestamp, &agent_conf);
+        inform_agent(&queue, &agent_conf);
+        
+        let mut file = File::create("agent_conf.txt").expect("failed to create agent_conf.txt");
+        file.write_all(&"{\n    \"pairs\": [\n                  \"BTCandUSD\",\n                  \"ETHandUSD\"\n],\n    \"window\": 60,\n    \"interval\": 60,\n    \"path\": \"output/\"\n}\n".to_string().into_bytes()).expect("failed to write invalid pairs to agent_conf.txt");
+        file.sync_all().expect("failed to sync file changes after writing agent_conf.txt");
+
+        //using hardcoded pairs value because queue_frames_removes_keys_when_pairs_are_changed()
+        //has not been finished so the agent_conf can't be trusted not to create a false positive
+        let pairs = vec!["BTCandUSD", "ETHandUSD"];
+
+        let (mini_frame, timestamp) = get_many_fake_frames();
+        let frame = mini_struct_to_full_struct(mini_frame);
+        //load new conf with two pairs
+        let agent_conf = get_agent_conf(&frame);
+        queue = queue_frames(queue, &frame, timestamp, &agent_conf);
+        inform_agent(&queue, &agent_conf);
+        
+        let mut err_count = 0;
+        let output_dir = fs::read_dir(agent_conf.path).expect("failed to find the agent output folder");
+        for file_name in output_dir {
+            let name: String = file_name.expect("the pre string result which sets fileNAME has broken")
+                                .file_name()
+                                .into_string()
+                                .expect("the post string result which sets fileNAME has broken")
+                                .to_owned();
+            for pair in pairs.clone() {
+                if name.contains(&format!("{}.txt", pair)){
+                    continue
+                } else {
+                    err_count += 1;
+                }
+            }
+        }
+
+        clean_up_confs();
+        clean_up_agent_output();
+
+        if err_count == 0 {
+            Ok(())
+        } else {
+            Err(())
+        }
+    }
+
     fn inform_agent_changes_output_when_window_changes() -> Result<(), ()> {
         Err(())
     }
@@ -2062,6 +2153,7 @@ mod tests {
         inform_agent_survives_no_frames().expect("inform agent panicked when given no frames");
         inform_agent_adds_single_frame_to_each_file().expect("inform agent failed to add a frame to one file");
         inform_agent_adds_many_frames_to_each_file().expect("inform agent failed to add multiple frames to one file");
+        //inform_agent_changes_output_when_pairs_change().expect("inform agent failed to reduce the number of output files when the pairs change");
 
     }
 
