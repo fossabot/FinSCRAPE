@@ -408,6 +408,11 @@ fn get_agent_conf(frame: &HashMap<String, CryptoFiat>) -> Configuration {
                 err_string = "used default interval, interval is not divisable by 30".to_owned();
             }
 
+            if import_conf.path.is_empty() {
+                import_conf.path = default_conf.path.clone();
+                err_string = "used default path, root path is dangerous due to unrestricted file removal".to_owned();
+            }
+
             if err_count > 0 {
                 println!("{}", err_string);
             }
@@ -430,6 +435,19 @@ fn inform_agent(queue: &HashMap<String, Vec<Vec<String>>>, agent_conf: &Configur
     //and set a third file with a read->action_complete pair of time stamps for metrics
     //set_labels()
     fs::create_dir_all(&agent_conf.path).expect("failed to create directory");
+
+    let output_files = fs::read_dir(agent_conf.path.clone()).expect("failed to read files in output folder");
+    println!("{:?}", agent_conf.pairs);
+    for entry in output_files {
+        let unwrapped_entry = entry.expect("failed to unwrap DirEntry in inform agent");
+        let file_path = unwrapped_entry.path().to_owned();
+        let file_stem = unwrapped_entry.path().file_stem().expect("failed to get file stem from path").to_string_lossy().into_owned();
+        println!("{}", &file_stem);
+        if !agent_conf.pairs.contains(&file_stem) {
+            println!("removing {:?}", file_path.file_name().unwrap());
+            fs::remove_file(file_path).expect("failed to remove non needed output file");
+        }
+    }
 
     for pair in queue.keys() {
         match File::open(format!("{}{}.txt", &agent_conf.path, pair)) {
@@ -2121,21 +2139,19 @@ mod tests {
         let agent_conf = get_agent_conf(&frame);
         queue = queue_frames(queue, &frame, timestamp, &agent_conf);
         inform_agent(&queue, &agent_conf);
-        
+
         let mut err_count = 0;
         let output_dir = fs::read_dir(agent_conf.path).expect("failed to find the agent output folder");
         for file_name in output_dir {
-            let name: String = file_name.expect("the pre string result which sets fileNAME has broken")
-                                .file_name()
+            let unwrapped_entry = file_name.expect("failed to unwrap DirEntry");
+            let file_path = unwrapped_entry.path();
+            let file_stem = file_path.file_stem().expect("failed to get file stem from path").to_str().expect("failed to convert filestem to str");
+            let name: String = unwrapped_entry.file_name()
                                 .into_string()
                                 .expect("the post string result which sets fileNAME has broken")
                                 .to_owned();
-            for pair in pairs.clone() {
-                if name.contains(&format!("{}.txt", pair)){
-                    continue
-                } else {
-                    err_count += 1;
-                }
+            if !pairs.contains(&file_stem) {
+                err_count += 1
             }
         }
 
