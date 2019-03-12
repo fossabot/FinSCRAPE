@@ -245,6 +245,19 @@ fn queue_frames(mut queue: HashMap<String, Vec<Vec<String>>>,
         queue.entry(pair.to_string()).or_insert(timesteps);
     }
     
+    //don't think this is the best way to do this
+    let mut queue_keys = vec![];
+    for key in queue.keys().cloned() {
+        queue_keys.push(key);
+    }
+
+    //iter over the unrelated cloned list so mutable borrow  of queue can occur
+    for key in queue_keys {
+        if !agent_conf.pairs.contains(&key){
+            queue.remove(key.as_str());
+        }
+    }
+    
     //this adds, removes or skips frames based on the current configuration
     for pair in queue.clone() {
         let key = pair.0.to_string();
