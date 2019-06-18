@@ -837,7 +837,7 @@ mod tests {
     }
 
     #[test]
-    fn get_one_fake_frame_returns_valid_frame() {
+    fn get_one_fake_frame_returns_valid_frame_test() {
         let (frame, timestamp) = get_one_fake_frame();
         if frame["BTCandUSD"].crypto_symbol != "BTC" ||
            frame["BTCandUSD"].fiat_symbol != "USD" {
@@ -970,7 +970,7 @@ mod tests {
 
     }
 
-    fn get_many_fake_frames_returns_valid_data() -> Result<(), ()>{
+    fn get_many_fake_frames_returns_valid_data_test() -> Result<(), ()>{
         clean_up_confs();
 
         let (frame, timestamp) = get_many_fake_frames();
@@ -990,7 +990,7 @@ mod tests {
         Ok(())
     }
 
-    fn get_many_fake_frames_resets_after_db_exhausted() -> Result<(), ()> {
+    fn get_many_fake_frames_resets_after_db_exhausted_test() -> Result<(), ()> {
         clean_up_confs();
 
         //this may need to be 505 because its upper bound is not inclusive
@@ -1014,10 +1014,10 @@ mod tests {
     #[test]
     #[ignore]
     #[serial(mut_timestamp)]
-    fn get_many_fake_frames_group_with_2() {
+    fn get_many_fake_frames_group() {
         //mutation/deletion of the shared file in get_many_fake_frames prevents any of these tests from being run in parallel
-        get_many_fake_frames_returns_valid_data().expect("get_many_fake returned invalid data");
-        get_many_fake_frames_resets_after_db_exhausted().expect("get_many_fake did not reset after db was exhausted");
+        get_many_fake_frames_returns_valid_data_test().expect("get_many_fake returned invalid data");
+        get_many_fake_frames_resets_after_db_exhausted_test().expect("get_many_fake did not reset after db was exhausted");
     }
 
     fn clean_up_confs() {
@@ -1107,7 +1107,7 @@ mod tests {
     }
     */
 
-    fn get_data_creates_valid_frame() -> Result<(), ()> {
+    fn get_data_creates_valid_frame_test() -> Result<(), ()> {
         let frame = get_data();
         if frame["BTCandUSD"].crypto_symbol == "BTC" &&
            frame["BTCandUSD"].fiat_symbol == "USD"
@@ -1119,7 +1119,7 @@ mod tests {
         }
     }
 
-    fn get_data_frame_has_all_crypto() -> Result<(), ()> {
+    fn get_data_frame_has_all_crypto_test() -> Result<(), ()> {
         let frame = get_data();
         if frame.len() == 32 {
             Ok(())
@@ -1128,11 +1128,11 @@ mod tests {
         }
     }
 
-    fn get_data_survives_bad_connection() -> Result<(),()> {
+    fn get_data_survives_bad_connection_test() -> Result<(),()> {
         Err(())
     }
 
-    fn get_data_survives_bad_data() -> Result<(), ()> {
+    fn get_data_survives_bad_data_test() -> Result<(), ()> {
         Err(())
     }
 
@@ -1140,13 +1140,13 @@ mod tests {
     #[ignore]
     //this is ignored because it can take a max of 30s
     //and because it calls a rationed api
-    fn get_data_group_with_2(){
-        get_data_creates_valid_frame().expect("get_data returned an invalid frame");
-        get_data_frame_has_all_crypto().expect("frame does not contain enough crypto-USD pairs");
+    fn get_data_group(){
+        get_data_creates_valid_frame_test().expect("get_data returned an invalid frame");
+        get_data_frame_has_all_crypto_test().expect("frame does not contain enough crypto-USD pairs");
     }
 
 
-    fn arrange_vec_has_29_items() -> Result<(), ()> {
+    fn arrange_vec_has_29_items_test() -> Result<(), ()> {
         let (frame, timestamp) = get_one_fake_frame();
         let pair = &frame["BTCandUSD"];
         let write_vec = arrange_vec(&pair, &timestamp);
@@ -1157,7 +1157,7 @@ mod tests {
         }
     }
 
-    fn arrange_vec_returns_valid_writevec() -> Result<(), ()> {
+    fn arrange_vec_returns_valid_writevec_test() -> Result<(), ()> {
         let (frame, timestamp) = get_one_fake_frame();
         let pair = &frame["BTCandUSD"];
         let write_vec = arrange_vec(&pair, &timestamp);
@@ -1182,13 +1182,13 @@ mod tests {
     }
 
     #[test]
-    fn arrange_vec_test_group_with_2(){
-        arrange_vec_has_29_items().expect("arrange_vec returns an incorrect number of items");
-        arrange_vec_returns_valid_writevec().expect("arrange_vec returns an invalid write_vec");
+    fn arrange_vec_test_group(){
+        arrange_vec_has_29_items_test().expect("arrange_vec returns an incorrect number of items");
+        arrange_vec_returns_valid_writevec_test().expect("arrange_vec returns an invalid write_vec");
     }
 
 
-    fn write_data_creates_db_when_none() -> Result <(), ()> {
+    fn write_data_creates_db_when_none_test() -> Result <(), ()> {
         let master = DB {
             path: Some("test.db".to_string()),
             storage_device: None
@@ -1211,7 +1211,7 @@ mod tests {
         return Ok(());
     }
 
-    fn write_data_adds_valid_tables_to_db() -> Result <(), ()> {
+    fn write_data_adds_valid_tables_to_db_test() -> Result <(), ()> {
         let master = DB {
             path: Some("test.db".to_string()),
             storage_device: None
@@ -1274,7 +1274,7 @@ mod tests {
         
     }
 
-    fn write_data_adds_valid_row_to_one_table() -> Result <(), ()> {
+    fn write_data_adds_valid_row_to_one_table_test() -> Result <(), ()> {
         let master = DB {
             path: Some("test.db".to_string()),
             storage_device: None
@@ -1306,7 +1306,7 @@ mod tests {
 
     }
 
-    fn write_data_adds_valid_columns() -> Result <(), ()> {
+    fn write_data_adds_valid_columns_test() -> Result <(), ()> {
         let master = DB {
             path: Some("test.db".to_string()),
             storage_device: None
@@ -1364,15 +1364,15 @@ mod tests {
     }
 
     #[test]
-    fn write_data_group_with_4(){
-        write_data_creates_db_when_none().expect("write_data failed to create master");
-        write_data_adds_valid_tables_to_db().expect("write_data failed to add tables to DB");
-        write_data_adds_valid_columns().expect("write_data failed to add valid columns");
-        write_data_adds_valid_row_to_one_table().expect("write_data failed to add a valid row to the  first table");
+    fn write_data_group(){
+        write_data_creates_db_when_none_test().expect("write_data failed to create master");
+        write_data_adds_valid_tables_to_db_test().expect("write_data failed to add tables to DB");
+        write_data_adds_valid_columns_test().expect("write_data failed to add valid columns");
+        write_data_adds_valid_row_to_one_table_test().expect("write_data failed to add a valid row to the  first table");
     }
 
     //this one somehow returns hamandeggs
-    fn queue_frames_returns_all_keys() -> Result <(), ()> {
+    fn queue_frames_returns_all_keys_test() -> Result <(), ()> {
         clean_up_confs();
         let (mini_frame, timestamp) = get_many_fake_frames();
         let frame = mini_struct_to_full_struct(mini_frame);
@@ -1426,7 +1426,7 @@ mod tests {
         }
     }
 
-    fn queue_frames_returns_valid_data() -> Result <(), ()> {
+    fn queue_frames_returns_valid_data_test() -> Result <(), ()> {
         clean_up_confs();
         
         let mut queue = HashMap::new();
@@ -1448,7 +1448,7 @@ mod tests {
         };
     }
 
-    fn queue_frames_returns_more_than_one_vec() -> Result <(), ()> {
+    fn queue_frames_returns_more_than_one_vec_test() -> Result <(), ()> {
         clean_up_confs();
 
         let mut queue = HashMap::new();
@@ -1469,20 +1469,20 @@ mod tests {
         }
     }
 
-    fn queue_frames_notifies_when_specified_window_is_complete() -> Result <(),()> {
+    fn queue_frames_notifies_when_specified_window_is_complete_test() -> Result <(),()> {
         Err(())
     }
 
 
     #[test]
     #[serial(mut_timestamp)]
-    fn queue_frames_group_with_3(){
-        queue_frames_returns_all_keys().expect("queue_frames did not return the expected keys");
-        queue_frames_returns_valid_data().expect("queue_frames did not return a parsable timestamp at [0][0] position");
-        queue_frames_returns_more_than_one_vec().expect("queue_frames did not return multiple timesteps");
+    fn queue_frames_group(){
+        queue_frames_returns_all_keys_test().expect("queue_frames did not return the expected keys");
+        queue_frames_returns_valid_data_test().expect("queue_frames did not return a parsable timestamp at [0][0] position");
+        queue_frames_returns_more_than_one_vec_test().expect("queue_frames did not return multiple timesteps");
     }
 
-    fn queue_frames_creates_conf_when_none() -> Result<(), ()> {
+    fn queue_frames_creates_conf_when_none_test() -> Result<(), ()> {
         //use previous conf if current is invalid,
         //should set a previous file each time a valid conf is accepted
         // valid conf:
@@ -1514,7 +1514,7 @@ mod tests {
         return Ok(())
     }
 
-    fn queue_frames_survives_blank_conf_and_caps_at_defaults() -> Result<(), ()> {
+    fn queue_frames_survives_blank_conf_and_caps_at_defaults_test() -> Result<(), ()> {
         clean_up_confs();
 
         let mut queue = HashMap::new();
@@ -1546,7 +1546,7 @@ mod tests {
         Ok(())
     }
 
-    fn queue_frames_survives_invalid_pairs() -> Result<(), ()> {
+    fn queue_frames_survives_invalid_pairs_test() -> Result<(), ()> {
         /*
             window should be greater than 0 and present
             interval should be greater than 30, mulitple of 30 and present
@@ -1622,7 +1622,7 @@ mod tests {
         }
     }
 
-    fn queue_frames_survives_too_small_interval() -> Result<(), ()> {
+    fn queue_frames_survives_too_small_interval_test() -> Result<(), ()> {
         clean_up_confs();
         let mut file = File::create("agent_conf.txt").expect("failed to create agent_conf.txt");
         file.write_all(&"{\n    \"pairs\": [\n                  \"LTCandUSD\",\n                  \"MAIDandUSD\"\n],\n    \"window\": 60,\n    \"interval\": 15,\n    \"path\": \"/agent_output/\"\n}\n".to_string().into_bytes()).expect("failed to write invalid pairs to agent_conf.txt");
@@ -1668,7 +1668,7 @@ mod tests {
 
     }
 
-    fn queue_frames_survives_impossible_interval() -> Result<(), ()> {
+    fn queue_frames_survives_impossible_interval_test() -> Result<(), ()> {
         clean_up_confs();
         let mut file = File::create("agent_conf.txt").expect("failed to create agent_conf.txt");
         file.write_all(&"{\n    \"pairs\": [\n                  \"LTCandUSD\",\n                  \"MAIDandUSD\"\n],\n    \"window\": 60,\n    \"interval\": 75,\n    \"path\": \"/agent_output/\"\n}\n".to_string().into_bytes()).expect("failed to write invalid pairs to agent_conf.txt");
@@ -1712,11 +1712,11 @@ mod tests {
         }
     }
 
-    fn queue_frames_defaults_when_window_over_2_days() -> Result<(), ()> {
+    fn queue_frames_defaults_when_window_over_2_days_test() -> Result<(), ()> {
         Err(())
     }
 
-    fn queue_frames_removes_many_when_interval_is_changed() -> Result<(),()> {
+    fn queue_frames_removes_many_when_interval_is_changed_test() -> Result<(),()> {
         clean_up_confs();
         let mut file = File::create("agent_conf.txt").expect("failed to create agent_conf.txt");
         file.write_all(&"{\n    \"pairs\": [\n                  \"LTCandUSD\",\n                  \"MAIDandUSD\"\n],\n    \"window\": 60,\n    \"interval\": 60,\n    \"path\": \"/agent_output/\"\n}\n".to_string().into_bytes()).expect("failed to write invalid pairs to agent_conf.txt");
@@ -1762,7 +1762,7 @@ mod tests {
         }
     }
 
-    fn queue_frames_removes_keys_when_pairs_are_changed() -> Result<(),()> {
+    fn queue_frames_removes_keys_when_pairs_are_changed_test() -> Result<(),()> {
         clean_up_confs();
         clean_up_agent_output();
 
@@ -1801,11 +1801,11 @@ mod tests {
 
     }
 
-    fn queue_frames_notifies_invalid_conf_params() -> Result<(), ()> {
+    fn queue_frames_notifies_invalid_conf_params_test() -> Result<(), ()> {
         Err(())
     }
 
-    fn queue_frames_returns_pairs_specified_in_conf() -> Result <(), () > {
+    fn queue_frames_returns_pairs_specified_in_conf_test() -> Result <(), () > {
         /*
         if pairs.len() > performance_number of pairs then pairs is invalid
         */
@@ -1840,18 +1840,18 @@ mod tests {
     #[test]
     #[serial(mut_timestamp)]
     //this should be refactored to get_agent_conf group, but still test both get_agent_conf and queue_frames
-    fn agent_conf_group_with_8(){
-        queue_frames_creates_conf_when_none().expect("queue_frames failed to create a blank conf file");
-        queue_frames_survives_blank_conf_and_caps_at_defaults().expect("queue_frames did not use defaults when conf was blank");
-        queue_frames_survives_invalid_pairs().expect("queue_frames did not revert to default when given an invalid config");
-        queue_frames_returns_pairs_specified_in_conf().expect("queue_frames failed to return pairs given in a valid conf");
-        queue_frames_survives_too_small_interval().expect("queue_frames did not properly continue after being given too small a duration");
-        queue_frames_survives_impossible_interval().expect("queue_frames did not continue after being given an interval not divisable by 30");
-        queue_frames_removes_many_when_interval_is_changed().expect("queue_frames did not remove the non interval frames after the interval was changed");
-        queue_frames_removes_keys_when_pairs_are_changed().expect("queue_frames failed to remove keys from queue after conf was changed");
+    fn agent_conf_group(){
+        queue_frames_creates_conf_when_none_test().expect("queue_frames failed to create a blank conf file");
+        queue_frames_survives_blank_conf_and_caps_at_defaults_test().expect("queue_frames did not use defaults when conf was blank");
+        queue_frames_survives_invalid_pairs_test().expect("queue_frames did not revert to default when given an invalid config");
+        queue_frames_returns_pairs_specified_in_conf_test().expect("queue_frames failed to return pairs given in a valid conf");
+        queue_frames_survives_too_small_interval_test().expect("queue_frames did not properly continue after being given too small a duration");
+        queue_frames_survives_impossible_interval_test().expect("queue_frames did not continue after being given an interval not divisable by 30");
+        queue_frames_removes_many_when_interval_is_changed_test().expect("queue_frames did not remove the non interval frames after the interval was changed");
+        queue_frames_removes_keys_when_pairs_are_changed_test().expect("queue_frames failed to remove keys from queue after conf was changed");
     
         //what is this test, does it take user input???
-        //queue_frames_notifies_invalid_conf_params().expect("queue_frames failed to notify");
+        //queue_frames_notifies_invalid_conf_params_test().expect("queue_frames failed to notify");
     }
 
     /*
@@ -1868,7 +1868,7 @@ mod tests {
     }
     */
 
-    fn inform_agent_creates_file_for_each_key() -> Result<(),()> {
+    fn inform_agent_creates_file_for_each_key_test() -> Result<(),()> {
         clean_up_agent_output();
         clean_up_confs();
         let mut queue = HashMap::new();
@@ -1904,7 +1904,7 @@ mod tests {
         //look for text stuff using the conf
     }
 
-    fn inform_agent_survives_no_frames() -> Result<(),()> {
+    fn inform_agent_survives_no_frames_test() -> Result<(),()> {
         clean_up_agent_output();
         clean_up_confs();
 
@@ -1917,7 +1917,7 @@ mod tests {
         Ok(())
     }
 
-    fn inform_agent_adds_single_frame_to_each_file() -> Result<(),()> {
+    fn inform_agent_adds_single_frame_to_each_file_test() -> Result<(),()> {
         clean_up_agent_output();
         clean_up_confs();
 
@@ -1995,7 +1995,7 @@ mod tests {
         Err(())
     }
 
-    fn inform_agent_creates_correct_column_headers() -> Result<(),()>{
+    fn inform_agent_creates_correct_column_headers_test() -> Result<(),()>{
         clean_up_agent_output();
         clean_up_confs();
         let mut queue = HashMap::new();
@@ -2031,7 +2031,7 @@ mod tests {
         }
     }
 
-    fn inform_agent_adds_many_frames_to_each_file() -> Result<(),()> {
+    fn inform_agent_adds_many_frames_to_each_file_test() -> Result<(),()> {
         //for pair in agent_conf.pairs
         //add key and mutable vec with "timestamp,last_update,price,last_market,last_volume_crypto,volume_hour_crypto,volume_day_crypto,volume_24_hour_crypto,total_volume_24_hour_crypto,last_volume_fiat,volume_hour_fiat,volume_day_fiat,volume_24_hour_fiat,total_volume_24_hour_fiat,change_day,change_pct_day,change_24_hour,change_pct_24_hour,supply,market_cap,open_hour,high_hour,low_hour,open_day,high_day,low_day,open_24_hour,high_24_hour,low_24_hour"
         //connect to db
@@ -2113,7 +2113,7 @@ mod tests {
         Err(())
     }
 
-    fn inform_agent_changes_output_when_pairs_change() -> Result<(),()> {
+    fn inform_agent_changes_output_when_pairs_change_test() -> Result<(),()> {
         clean_up_agent_output();
         clean_up_confs();
 
@@ -2129,7 +2129,7 @@ mod tests {
         file.write_all(&"{\n    \"pairs\": [\n                  \"BTCandUSD\",\n                  \"ETHandUSD\"\n],\n    \"window\": 60,\n    \"interval\": 60,\n    \"path\": \"output/\"\n}\n".to_string().into_bytes()).expect("failed to write invalid pairs to agent_conf.txt");
         file.sync_all().expect("failed to sync file changes after writing agent_conf.txt");
 
-        //using hardcoded pairs value because queue_frames_removes_keys_when_pairs_are_changed()
+        //using hardcoded pairs value because queue_frames_removes_keys_when_pairs_are_changed_test()
         //has not been finished so the agent_conf can't be trusted not to create a false positive
         let pairs = vec!["BTCandUSD", "ETHandUSD"];
 
@@ -2165,11 +2165,11 @@ mod tests {
         }
     }
 
-    fn inform_agent_changes_output_when_window_changes() -> Result<(), ()> {
+    fn inform_agent_changes_output_when_window_changes_test() -> Result<(), ()> {
         Err(())
     }
 
-    fn inform_agent_changes_output_when_interval_changes() -> Result<(), ()> {
+    fn inform_agent_changes_output_when_interval_changes_test() -> Result<(), ()> {
         Err(())
     }
 
@@ -2177,12 +2177,12 @@ mod tests {
     //this is the last serial test, so our 2min test time should be close to final
     #[serial(mut_timestamp)]
     fn inform_agent_group(){
-        inform_agent_creates_file_for_each_key().expect("failed to create file for each key in queue");
-        inform_agent_creates_correct_column_headers().expect("failed to find header in one or more output files");
-        inform_agent_survives_no_frames().expect("inform agent panicked when given no frames");
-        inform_agent_adds_single_frame_to_each_file().expect("inform agent failed to add a frame to one file");
-        inform_agent_adds_many_frames_to_each_file().expect("inform agent failed to add multiple frames to one file");
-        inform_agent_changes_output_when_pairs_change().expect("inform agent failed to reduce the number of output files when the pairs change");
+        inform_agent_creates_file_for_each_key_test().expect("failed to create file for each key in queue");
+        inform_agent_creates_correct_column_headers_test().expect("failed to find header in one or more output files");
+        inform_agent_survives_no_frames_test().expect("inform agent panicked when given no frames");
+        inform_agent_adds_single_frame_to_each_file_test().expect("inform agent failed to add a frame to one file");
+        inform_agent_adds_many_frames_to_each_file_test().expect("inform agent failed to add multiple frames to one file");
+        inform_agent_changes_output_when_pairs_change_test().expect("inform agent failed to reduce the number of output files when the pairs change");
 
     }
 
